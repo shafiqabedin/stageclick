@@ -29,6 +29,7 @@ button{font-family:var(--body);cursor:pointer;color:var(--fg)}
 button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--tally);outline-offset:2px}
 .btn{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-weight:700;font-size:16px;min-height:48px}
 .btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.35}
 .btn.primary{background:var(--tally);border-color:var(--tally);color:#1a1200}
 .btn.danger{color:var(--down)}
 .btn.armed{background:var(--down);border-color:var(--down);color:#fff}
@@ -57,7 +58,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .pos{display:flex;justify-content:space-between;align-items:baseline}
 .sname{font-family:var(--display);font-weight:800;font-size:clamp(34px,10vw,52px);line-height:1;text-transform:uppercase;text-wrap:balance;overflow-wrap:anywhere}
 .bpmbig{display:flex;align-items:baseline;gap:10px}
-.bpmbig .v{font-family:var(--display);font-weight:800;font-size:clamp(96px,32vw,150px);line-height:.85;color:var(--tally);font-variant-numeric:tabular-nums}
+.bpmbig .v{font-family:var(--display);font-weight:800;font-size:clamp(56px,17vw,80px);line-height:.85;color:var(--tally);font-variant-numeric:tabular-nums}
 .bpmbig .u{font-family:var(--display);font-weight:600;font-size:24px;color:var(--dim)}
 .lights{display:flex;gap:10px}
 .lights i{flex:1;height:34px;border-radius:8px;background:var(--panel);border:1px solid var(--line);transition:background .06s}
@@ -67,6 +68,11 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .state .g{color:var(--tally)}
 .go{font-family:var(--display);font-weight:800;font-size:34px;letter-spacing:.04em;text-transform:uppercase;min-height:96px;border-radius:14px}
 .go.stop{background:var(--down);border-color:var(--down);color:#fff}
+.nav{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.nav .btn{min-height:96px;font-family:var(--display);font-weight:800;font-size:28px;text-transform:uppercase;letter-spacing:.04em}
+.upnext{display:flex;flex-direction:column;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.upnext .t{font-family:var(--display);font-weight:800;font-size:28px;line-height:1.05;text-transform:uppercase;overflow-wrap:anywhere}
+.upnext .m{color:var(--dim);font-size:15px;font-variant-numeric:tabular-nums}
 .mix{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center}
 input[type=range]{width:100%;accent-color:var(--tally)}
 .check{display:flex;gap:10px;align-items:center;font-size:15px}
@@ -121,11 +127,14 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
     <div class="lights" id="lights"></div>
     <div class="state" id="shState">Ready</div>
     <button class="btn primary go" id="shGo">Play groove → click</button>
+    <div class="nav">
+      <button class="btn" id="shPrev">◀ Prev</button>
+      <button class="btn" id="shNext">Next ▶</button>
+    </div>
+    <div class="upnext" id="upnext"><span class="label">Up next</span><span class="t" id="nxName">—</span><span class="m" id="nxMeta"></span></div>
     <div class="grid2">
       <button class="btn" id="shClick">Click only</button>
       <button class="btn" id="shStop">Stop</button>
-      <button class="btn" id="shPrev">◀ Prev song</button>
-      <button class="btn" id="shNext">Next song ▶</button>
     </div>
     <div class="mix">
       <span class="label">Click</span><input type="range" id="volClick" min="0" max="1.5" step="0.01" value="0.9" aria-label="Click volume">
@@ -373,6 +382,8 @@ function renderShow(){
   if(!songs.length){$('shName').textContent='No songs';$('shBpm').textContent='–';$('shPos').textContent='Setlist is empty';$('shGo').disabled=true;return}
   cur=Math.min(cur,songs.length-1);const s=songs[cur];$('shGo').disabled=false;
   $('shPos').textContent=`Song ${cur+1} of ${songs.length}`;$('shName').textContent=s.name;$('shBpm').textContent=fmtBpm(s.bpm);$('shMeter').textContent=s.bpb+' beats/bar';
+  const n=songs[cur+1];$('nxName').textContent=n?n.name:'End of set';$('nxMeta').textContent=n?`${fmtBpm(n.bpm)} BPM · ${n.bpb} beats/bar`:'This is the last song';
+  $('shPrev').disabled=cur===0;$('shNext').disabled=!n;
   const lt=$('lights');lt.innerHTML='';for(let i=0;i<s.bpb;i++){const d=document.createElement('i');if(!i)d.className='one';lt.append(d)}
   renderShowState();
 }
