@@ -60,6 +60,9 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .bpmbig{display:flex;align-items:baseline;gap:10px}
 .bpmbig .v{font-family:var(--display);font-weight:800;font-size:clamp(56px,17vw,80px);line-height:.85;color:var(--tally);font-variant-numeric:tabular-nums}
 .bpmbig .u{font-family:var(--display);font-weight:600;font-size:24px;color:var(--dim)}
+.bpmrow{display:grid;grid-template-columns:72px 1fr 72px;gap:8px;align-items:center}
+.bpmrow .bpmbig{justify-content:center}
+.adj{min-height:72px;font-family:var(--display);font-weight:800;font-size:28px}
 .lights{display:flex;gap:10px}
 .lights i{flex:1;height:34px;border-radius:8px;background:var(--panel);border:1px solid var(--line);transition:background .06s}
 .lights i.on{background:var(--tally);border-color:var(--tally)}
@@ -136,7 +139,8 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
   <section id="vShow" class="stage" hidden>
     <div class="pos"><span class="label" id="shPos">Song 1 of 1</span><span class="pill" id="shMeter">4/4</span></div>
     <div class="sname" id="shName">—</div>
-    <div class="bpmbig"><span class="v" id="shBpm">0</span><span class="u">BPM</span></div>
+    <div class="bpmrow"><button class="btn adj" id="shMinus" aria-label="Minus 1 BPM">−1</button><div class="bpmbig"><span class="v" id="shBpm">0</span><span class="u">BPM</span></div><button class="btn adj" id="shPlus" aria-label="Plus 1 BPM">+1</button></div>
+    <button class="btn" id="shTap">Tap the tempo (4+ taps)</button>
     <div class="lights" id="lights"></div>
     <div class="state" id="shState">Ready</div>
     <button class="btn primary go" id="shGo">Play groove → click</button>
@@ -415,7 +419,23 @@ $('shGo').onclick=()=>{
 };
 $('shClick').onclick=()=>{stopAll();const s=songs[cur];if(!s||!s.bpm)return;const c=live();startClick(c.currentTime+0.1,s.bpm,s.bpb,{owner:'show'});renderShowState('Click');wake()};
 $('shStop').onclick=stopAll;
-$('shPrev').onclick=()=>{stopAll();if(cur>0){cur--;renderShow()}};
+let showSave=null,showTaps=[];
+function setShowBpm(b){
+  const s=songs[cur];if(!s||!isFinite(b))return;b=Math.max(30,Math.min(300,Math.round(b)));s.bpm=b;
+  $('shBpm').textContent=fmtBpm(b);$('shClick').disabled=false;$('shGo').disabled=!s.clip;
+  if(eng.running&&eng.owner==='show'&&eng.next>=eng.grooveEnd)eng.bpm=b;   // live change once the click is on its own
+  if(!eng.running)renderShowState();
+  clearTimeout(showSave);showSave=setTimeout(async()=>{try{if(db)await dbPut(s);toast('Saved '+b+' BPM')}catch(e){toast('Could not save the BPM')}},600);
+}
+$('shMinus').onclick=()=>setShowBpm((songs[cur]&&songs[cur].bpm||101)-1);
+$('shPlus').onclick=()=>setShowBpm((songs[cur]&&songs[cur].bpm||99)+1);
+$('shTap').onclick=()=>{
+  const t=performance.now(),b=$('shTap');if(showTaps.length&&t-showTaps[showTaps.length-1]>2000)showTaps=[];showTaps.push(t);if(showTaps.length>9)showTaps.shift();
+  if(showTaps.length>=4)setShowBpm(60000/((showTaps[showTaps.length-1]-showTaps[0])/(showTaps.length-1)));
+  else b.textContent='Tap '+showTaps.length+' of 4…';
+  clearTimeout(b.h);b.h=setTimeout(()=>{b.textContent='Tap the tempo (4+ taps)';showTaps=[]},2000);
+};
+$('shPrev').onclick=()=>{stopAll();showTaps=[];if(cur>0){cur--;renderShow()}};
 $('shNext').onclick=()=>{stopAll();if(cur<songs.length-1){cur++;renderShow()}};
 $('volClick').oninput=$('volGroove').oninput=()=>{applyVol();store.set('vol',[+$('volClick').value,+$('volGroove').value])};
 $('overlay').onchange=()=>{store.set('overlay',$('overlay').checked);eng.overlay=$('overlay').checked};
