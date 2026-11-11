@@ -1,0 +1,160 @@
+{
+ "gig": "Dibitio · Shack 15",
+ "date": "2026-11-13",
+ "songs": [
+  {
+   "n": 1,
+   "name": "Mon Shudhu Mon Chuyeche",
+   "bpm": 100,
+   "bpb": 4,
+   "bars": 4,
+   "clip": "clips/01_mon-shudhu-mon-chuyeche.mp3",
+   "source": "rehearsal 2026-11-09 @ 0:30"
+  },
+  {
+   "n": 2,
+   "name": "Abar Elo Je Shondha",
+   "bpm": null,
+   "bpb": 4,
+   "bars": 4
+  },
+  {
+   "n": 3,
+   "name": "Sraboner Megh",
+   "bpm": null,
+   "bpb": 4,
+   "bars": 4
+  },
+  {
+   "n": 4,
+   "name": "From the Start",
+   "bpm": 158,
+   "bpb": 4,
+   "bars": 4,
+   "clip": "clips/04_from-the-start.mp3",
+   "source": "rehearsal 2026-11-09 @ 12:45",
+   "note": "Could be counted half-time (~79)"
+  },
+  {
+   "n": 5,
+   "name": "Wonderwall",
+   "bpm": 90,
+   "bpb": 4,
+   "bars": 4,
+   "clip": "clips/05_wonderwall.mp3",
+   "source": "rehearsal 2026-11-09 @ 26:11"
+  },
+  {
+   "n": 6,
+   "name": "Sparks",
+   "bpm": 151,
+   "bpb": 4,
+   "bars": 4,
+   "clip": "clips/06_sparks.mp3",
+   "source": "rehearsal 2026-11-09 @ 31:24",
+   "note": "Could be counted half-time (~75)"
+  },
+  {
+   "n": 7,
+   "name": "Fast Car",
+   "bpm": 110,
+   "bpb": 4,
+   "bars": 4,
+   "clip": "clips/07_fast-car.mp3",
+   "source": "rehearsal 2026-11-09 @ 38:07"
+  },
+  {
+   "n": 8,
+   "name": "Ajeeb Dastan Hai",
+   "bpm": null,
+   "bpb": 4,
+   "bars": 4
+  },
+  {
+   "n": 9,
+   "name": "While My Guitar Gently Weeps",
+   "bpm": null,
+   "bpb": 4,
+   "bars": 4
+  },
+  {
+   "n": 10,
+   "name": "Amay Dekona",
+   "bpm": null,
+   "bpb": 4,
+   "bars": 4
+  },
+  {
+   "n": 11,
+   "name": "Every Breath You Take",
+   "bpm": null,
+   "bpb": 4,
+   "bars": 4
+  },
+  {
+   "n": 12,
+   "name": "Dur Pahar",
+   "bpm": null,
+   "bpb": 4,
+   "bars": 4
+  },
+  {
+   "n": 13,
+   "name": "I Can't Help Falling in Love",
+   "bpm": null,
+   "bpb": 4,
+   "bars": 4
+  },
+  {
+   "n": 14,
+   "name": "Neel Monihar",
+   "bpm": 132,
+   "bpb": 4,
+   "bars": 4,
+   "clip": "clips/14_neel-monihar.mp3",
+   "source": "rehearsal 2026-11-09 @ 45:41"
+  },
+  {
+   "n": 15,
+   "name": "Hridoy Jure",
+   "bpm": null,
+   "bpb": 4,
+   "bars": 4
+  },
+  {
+   "n": 16,
+   "name": "Knocking on Heaven's Door",
+   "bpm": null,
+   "bpb": 4,
+   "bars": 4
+  },
+  {
+   "n": 17,
+   "name": "Neela",
+   "bpm": null,
+   "bpb": 4,
+   "bars": 4
+  },
+  {
+   "n": 18,
+   "name": "Papa Kehte Hain",
+   "bpm": null,
+   "bpb": 4,
+   "bars": 4
+  },
+  {
+   "n": 19,
+   "name": "Jadu",
+   "bpm": null,
+   "bpb": 4,
+   "bars": 4
+  },
+  {
+   "n": 20,
+   "name": "Mon Ki Je Chaye / Bar Bar Dekho",
+   "bpm": null,
+   "bpb": 4,
+   "bars": 4
+  }
+ ]
+}

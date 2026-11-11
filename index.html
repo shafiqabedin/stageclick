@@ -88,6 +88,8 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .status{font-size:14px;color:var(--dim);min-height:20px}
 .status.err{color:var(--down)}
+.gig{display:flex;justify-content:space-between;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--tally);border-radius:12px;padding:12px 14px}
+.gig b{font-family:var(--display);font-size:22px;text-transform:uppercase}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);font-weight:700;padding:10px 16px;border-radius:99px;z-index:20}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}.btn:active{transform:none}}
 </style>
@@ -104,7 +106,18 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
   <!-- SETLIST -->
   <section id="vSet" class="stage">
     <div class="list" id="list"></div>
+    <div id="gigs" class="field"></div>
     <label class="btn primary" style="text-align:center" for="file">+ Add song from a recording</label>
+    <div class="field">
+      <span class="label">Keep your settings safe</span>
+      <div class="grid2">
+        <button class="btn" id="copyList">Copy BPM list</button>
+        <button class="btn" id="saveBackup">Save backup</button>
+      </div>
+      <label class="btn" style="text-align:center" for="restoreFile">Restore backup</label>
+      <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+      <span class="muted">Paste the copied BPM list to Claude to make it permanent in the gig setlist.</span>
+    </div>
     <input type="file" id="file" accept="audio/*,.m4a,.mp3,.wav,.aac,.caf" hidden>
     <div class="status" id="setStatus"></div>
     <div class="help">
@@ -147,7 +160,9 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
   <section id="vEdit" class="stage" hidden>
     <div class="row"><button class="btn" id="edBack">◀ Back</button><span class="grow"></span><span class="pill ex" id="edEx" hidden>Example</span></div>
     <div class="field"><label class="label" for="edName">Song name</label><input type="text" id="edName" autocomplete="off"></div>
-    <div class="field">
+    <label class="btn" style="text-align:center" for="edFile" id="edAttach">Add a recording for this song</label>
+    <input type="file" id="edFile" accept="audio/*,.m4a,.mp3,.wav,.aac,.caf" hidden>
+    <div class="field" id="edWaveField">
       <span class="label">Whole recording · tap to pick where the groove starts</span>
       <canvas id="wave"></canvas>
       <span class="label">Groove close-up · red = bar 1, lines = beats</span>
@@ -163,15 +178,15 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
         <button class="btn grow" id="bpmRound">Round</button>
         <button class="btn grow" id="tap">Tap</button>
       </div>
-      <button class="btn" id="detect">Detect BPM again from the groove start</button>
+      <button class="btn" id="detect" data-needs-audio>Detect BPM again from the groove start</button>
     </div>
     <div class="grid2">
       <div class="field"><label class="label" for="meter">Beats per bar</label>
         <select id="meter"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option></select></div>
-      <div class="field"><label class="label" for="bars">Groove length</label>
+      <div class="field" data-needs-audio><label class="label" for="bars">Groove length</label>
         <select id="bars"><option value="1">1 bar</option><option value="2">2 bars</option><option value="4" selected>4 bars</option><option value="8">8 bars</option></select></div>
     </div>
-    <div class="field">
+    <div class="field" data-needs-audio>
       <span class="label">Line up the click with the band</span>
       <div class="grid2">
         <button class="btn" id="beatBack">◀ 1 beat</button><button class="btn" id="beatFwd">1 beat ▶</button>
@@ -179,7 +194,7 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
       </div>
       <span class="muted">Use the beat buttons if the accent lands on the wrong beat. Use 10 ms if the click flams against the snare.</span>
     </div>
-    <button class="btn primary go" id="edCheck">Check · play groove + click</button>
+    <button class="btn primary go" id="edCheck" data-needs-audio>Check · play groove + click</button>
     <div class="grid2">
       <button class="btn primary" id="edSave">Save</button>
       <button class="btn danger" id="edDel">Delete</button>
@@ -194,7 +209,7 @@ const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem('sc_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('sc_'+k,JSON.stringify(v))}catch(e){}}};
 function toast(msg){const t=$('toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,1800)}
 const fmtT=s=>{s=Math.max(0,s);const m=Math.floor(s/60);return m+':'+(s-m*60).toFixed(1).padStart(4,'0')};
-const fmtBpm=b=>Math.abs(b-Math.round(b))<0.05?String(Math.round(b)):b.toFixed(1);
+const fmtBpm=b=>b==null?'–':Math.abs(b-Math.round(b))<0.05?String(Math.round(b)):b.toFixed(1);
 
 /* ---------- storage (IndexedDB) ---------- */
 let db=null;
@@ -203,6 +218,7 @@ function req(storeName,mode,fn){return new Promise((res,rej)=>{const t=db.transa
 const dbAll=()=>req('songs','readonly',s=>s.getAll());
 const dbPut=song=>req('songs','readwrite',s=>s.put(song));
 const dbDel=id=>req('songs','readwrite',s=>s.delete(id));
+const dbClear=()=>req('songs','readwrite',s=>s.clear());
 const metaGet=k=>req('meta','readonly',s=>s.get(k));
 const metaSet=(k,v)=>req('meta','readwrite',s=>s.put(v,k));
 
@@ -362,7 +378,7 @@ function renderList(){
   if(!songs.length){L.innerHTML='<div class="empty">No songs yet. Add one from a rehearsal recording.</div>';return}
   songs.forEach((s,i)=>{
     const r=document.createElement('div');r.className='song';
-    r.innerHTML=`<div class="n">${i+1}</div><button class="main"><div class="t"></div><div class="m">${fmtBpm(s.bpm)} BPM · ${s.bpb}/4 · ${s.bars} bar groove</div></button>
+    r.innerHTML=`<div class="n">${i+1}</div><button class="main"><div class="t"></div><div class="m">${s.bpm?fmtBpm(s.bpm)+' BPM':'BPM not set'} · ${s.bpb}/4 · ${s.clip?s.bars+' bar groove':'no groove clip'}${s.note?' · '+esc(s.note):''}</div></button>
       <div class="tools"><button class="ic" aria-label="Move up" ${i?'':'disabled'}>↑</button><button class="ic" aria-label="Move down" ${i<songs.length-1?'':'disabled'}>↓</button><button class="ic" aria-label="Edit">✎</button></div>`;
     const t=r.querySelector('.t');t.textContent=s.name+' ';if(s.example){const p=document.createElement('span');p.className='pill ex';p.textContent='Example';t.append(p)}
     r.querySelector('.main').onclick=()=>{cur=i;show('show')};
@@ -377,17 +393,18 @@ async function move(i,d){
   try{await Promise.all([dbPut(songs[i]),dbPut(songs[j])])}catch(e){toast('Could not save the new order')}
 }
 
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 /* ---------- show ---------- */
 function renderShow(){
   if(!songs.length){$('shName').textContent='No songs';$('shBpm').textContent='–';$('shPos').textContent='Setlist is empty';$('shGo').disabled=true;return}
-  cur=Math.min(cur,songs.length-1);const s=songs[cur];$('shGo').disabled=false;
+  cur=Math.min(cur,songs.length-1);const s=songs[cur];$('shGo').disabled=!(s.clip&&s.bpm);$('shClick').disabled=!s.bpm;
   $('shPos').textContent=`Song ${cur+1} of ${songs.length}`;$('shName').textContent=s.name;$('shBpm').textContent=fmtBpm(s.bpm);$('shMeter').textContent=s.bpb+' beats/bar';
-  const n=songs[cur+1];$('nxName').textContent=n?n.name:'End of set';$('nxMeta').textContent=n?`${fmtBpm(n.bpm)} BPM · ${n.bpb} beats/bar`:'This is the last song';
+  const n=songs[cur+1];$('nxName').textContent=n?n.name:'End of set';$('nxMeta').textContent=n?`${n.bpm?fmtBpm(n.bpm):'No'} BPM · ${n.bpb} beats/bar`:'This is the last song';
   $('shPrev').disabled=cur===0;$('shNext').disabled=!n;
   const lt=$('lights');lt.innerHTML='';for(let i=0;i<s.bpb;i++){const d=document.createElement('i');if(!i)d.className='one';lt.append(d)}
   renderShowState();
 }
-function renderShowState(txt){$('shState').innerHTML=txt||'Ready';const go=$('shGo');const playing=eng.running&&eng.owner==='show';go.classList.toggle('stop',playing);go.textContent=playing?'Stop':'Play groove → click'}
+function renderShowState(txt){$('shState').innerHTML=txt||'Ready';const go=$('shGo');const playing=eng.running&&eng.owner==='show';go.classList.toggle('stop',playing);const s=songs[cur];go.textContent=playing?'Stop':!s||!s.bpm?'Set the BPM in Setlist':!s.clip?'No groove clip yet':'Play groove → click'}
 function setLights(k){[...$('lights').children].forEach((d,i)=>d.classList.toggle('on',i===k))}
 $('shGo').onclick=()=>{
   if(eng.running&&eng.owner==='show'){stopAll();return}
@@ -396,7 +413,7 @@ $('shGo').onclick=()=>{
   startClick(t0,s.bpm,s.bpb,{overlay:$('overlay').checked,grooveEnd:t0+dur,owner:'show'});
   renderShowState('Starting…');wake();
 };
-$('shClick').onclick=()=>{stopAll();const s=songs[cur];if(!s)return;const c=live();startClick(c.currentTime+0.1,s.bpm,s.bpb,{owner:'show'});renderShowState('Click');wake()};
+$('shClick').onclick=()=>{stopAll();const s=songs[cur];if(!s||!s.bpm)return;const c=live();startClick(c.currentTime+0.1,s.bpm,s.bpb,{owner:'show'});renderShowState('Click');wake()};
 $('shStop').onclick=stopAll;
 $('shPrev').onclick=()=>{stopAll();if(cur>0){cur--;renderShow()}};
 $('shNext').onclick=()=>{stopAll();if(cur<songs.length-1){cur++;renderShow()}};
@@ -442,32 +459,37 @@ $('file').onchange=async e=>{
 };
 async function openEditor(s){
   stopAll();
+  if(!s.audio){ed={song:{...s},buf:null,isNew:false};openEditorUI();return}
   try{const buf=await decodeAudio(s.audio);ed={song:{...s},buf,isNew:false};openEditorUI()}
   catch(e){toast('Could not open this recording')}
 }
-function snap(s,t){
+function snap(s,t,buf){
+  buf=buf||(ed&&ed.buf);if(!buf||!s.bpm)return t;
   const bd=barDur(s);let k=Math.round((t-s.gridT)/bd),v=s.gridT+k*bd;
-  while(v<0)v+=bd;while(v+grooveDur(s)>ed.buf.length/ed.buf.sampleRate&&v-bd>=0)v-=bd;return v;
+  while(v<0)v+=bd;while(v+grooveDur(s)>buf.length/buf.sampleRate&&v-bd>=0)v-=bd;return v;
 }
 function openEditorUI(){
   const s=ed.song;$('edName').value=s.name;$('meter').value=String(s.bpb);$('bars').value=String(s.bars);$('edEx').hidden=!s.example;
   delArm(false);show('edit');peaks=null;requestAnimationFrame(()=>{refreshEditor()});
 }
 function refreshEditor(){
-  const s=ed.song;$('edBpm').textContent=fmtBpm(s.bpm);
+  const s=ed.song,has=!!ed.buf;$('edBpm').textContent=fmtBpm(s.bpm);
+  $('edWaveField').hidden=!has;document.querySelectorAll('[data-needs-audio]').forEach(e=>e.hidden=!has);
+  $('edAttach').textContent=has?'Replace the recording':'Add a recording for this song';
+  if(!has){edStatus('');return}
   const barNo=Math.round((s.startT-s.gridT)/barDur(s))+1;
   edStatus(`Groove starts at ${fmtT(s.startT)} · ${s.bars} bar${s.bars>1?'s':''} = ${grooveDur(s).toFixed(1)} s`);
   drawWave();drawZoom();
 }
 function setBpm(b){
-  const s=ed.song;b=Math.max(30,Math.min(300,Math.round(b*10)/10));
+  const s=ed.song;if(!isFinite(b))b=100;b=Math.max(30,Math.min(300,Math.round(b*10)/10));
   const anchor=s.startT;s.bpm=b;s.gridT=anchor;s.startT=snap(s,anchor);refreshEditor();
 }
-$('bpmMinus').onclick=()=>setBpm(ed.song.bpm-1);
-$('bpmPlus').onclick=()=>setBpm(ed.song.bpm+1);
-$('bpmHalf').onclick=()=>setBpm(ed.song.bpm/2);
-$('bpmDouble').onclick=()=>setBpm(ed.song.bpm*2);
-$('bpmRound').onclick=()=>setBpm(Math.round(ed.song.bpm));
+$('bpmMinus').onclick=()=>setBpm((ed.song.bpm||101)-1);
+$('bpmPlus').onclick=()=>setBpm((ed.song.bpm||99)+1);
+$('bpmHalf').onclick=()=>ed.song.bpm&&setBpm(ed.song.bpm/2);
+$('bpmDouble').onclick=()=>ed.song.bpm&&setBpm(ed.song.bpm*2);
+$('bpmRound').onclick=()=>ed.song.bpm&&setBpm(Math.round(ed.song.bpm));
 let taps=[];
 $('tap').onclick=()=>{
   const t=performance.now();if(taps.length&&t-taps[taps.length-1]>2000)taps=[];taps.push(t);if(taps.length>9)taps.shift();
@@ -497,7 +519,7 @@ $('edCheck').onclick=()=>{
 $('edBack').onclick=()=>{stopAll();show('set')};
 $('edSave').onclick=async()=>{
   stopAll();const s=ed.song;s.name=($('edName').value.trim()||'Untitled song');
-  s.clip=clipFrom(ed.buf,s.startT,grooveDur(s));s.rev=(s.rev||0)+1;
+  if(ed.buf&&s.bpm)s.clip=clipFrom(ed.buf,s.startT,grooveDur(s));s.rev=(s.rev||0)+1;
   try{
     await dbPut(s);
     const i=songs.findIndex(x=>x.id===s.id);if(i>=0)songs[i]=s;else songs.push(s);
@@ -527,14 +549,14 @@ function wavePath(g,w,h,t0,t1,color){
   }
 }
 function drawWave(){
-  if(!ed)return;const cv=$('wave'),[g,w,h]=prep(cv),s=ed.song,T=ed.buf.length/ed.buf.sampleRate;
+  if(!ed||!ed.buf)return;const cv=$('wave'),[g,w,h]=prep(cv),s=ed.song,T=ed.buf.length/ed.buf.sampleRate;
   g.clearRect(0,0,w,h);
   g.fillStyle=css('--tally');g.globalAlpha=.22;g.fillRect(s.startT/T*w,0,Math.max(3,grooveDur(s)/T*w),h);g.globalAlpha=1;
   wavePath(g,w,h,0,T,css('--dim'));
   g.fillStyle=css('--tally');g.fillRect(s.startT/T*w,0,2,h);
 }
 function drawZoom(now){
-  if(!ed||view!=='edit')return;const cv=$('zoom'),[g,w,h]=prep(cv),s=ed.song,bd=barDur(s),beat=60/s.bpm;
+  if(!ed||!ed.buf||!ed.song.bpm||view!=='edit')return;const cv=$('zoom'),[g,w,h]=prep(cv),s=ed.song,bd=barDur(s),beat=60/s.bpm;
   const t0=s.startT-bd*0.5,t1=s.startT+grooveDur(s)+bd*0.5,X=t=>(t-t0)/(t1-t0)*w;
   g.clearRect(0,0,w,h);
   g.fillStyle=css('--tally');g.globalAlpha=.12;g.fillRect(X(s.startT),0,X(s.startT+grooveDur(s))-X(s.startT),h);g.globalAlpha=1;
@@ -548,10 +570,85 @@ function drawZoom(now){
   if(now!=null&&eng.owner==='edit'){const p=s.startT+(now-eng.t0);if(p>=s.startT){g.fillStyle=css('--ok');g.fillRect(X(p)-1,0,2,h)}}
   if(!(eng.running&&eng.owner==='edit'))$('edCheck').textContent='Check · play groove + click';
 }
-function tapCanvas(cv,toTime){cv.addEventListener('click',e=>{if(!ed)return;const r=cv.getBoundingClientRect();const t=toTime((e.clientX-r.left)/r.width);stopAll();ed.song.startT=snap(ed.song,t);refreshEditor()})}
+function tapCanvas(cv,toTime){cv.addEventListener('click',e=>{if(!ed||!ed.buf)return;const r=cv.getBoundingClientRect();const t=toTime((e.clientX-r.left)/r.width);stopAll();ed.song.startT=snap(ed.song,t);refreshEditor()})}
 tapCanvas($('wave'),f=>f*ed.buf.length/ed.buf.sampleRate);
 tapCanvas($('zoom'),f=>{const s=ed.song,bd=barDur(s),t0=s.startT-bd*0.5,t1=s.startT+grooveDur(s)+bd*0.5;return t0+f*(t1-t0)});
 window.addEventListener('resize',()=>{if(view==='edit'){drawWave();drawZoom()}});
+
+/* ---------- attach recording in editor ---------- */
+$('edFile').onchange=async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f||!ed)return;edStatus('Reading '+f.name+'…');
+  try{
+    const ab=await f.arrayBuffer(),buf=await decodeAudio(ab),s=ed.song,from=loudStart(buf),d=detect(buf,from,45,s.bpb);
+    if(!s.bpm)s.bpm=d.bpm;s.gridT=d.gridT;s.audio=ab;s.fileName=f.name;ed.buf=buf;s.startT=snap(s,Math.max(d.gridT,from));
+    refreshEditor();toast(`Detected ${fmtBpm(d.bpm)} BPM`+(Math.abs(d.bpm-s.bpm)>1?` · kept your ${fmtBpm(s.bpm)}`:''));
+  }catch(err){edStatus('This file could not be read. Use an M4A, MP3 or WAV file.',true)}
+};
+
+/* ---------- gig setlists from the repo ---------- */
+async function loadGigIndex(){
+  let gigs=[];try{const r=await fetch('gigs/index.json',{cache:'no-store'});if(r.ok)gigs=await r.json()}catch(e){}
+  const box=$('gigs');box.innerHTML='';
+  gigs.forEach(g=>{
+    const el=document.createElement('div');el.className='gig';
+    el.innerHTML=`<div><span class="label">Gig setlist · ${esc(g.date)}</span><br><b>${esc(g.name)}</b></div><button class="btn primary">Load</button>`;
+    const b=el.querySelector('button');
+    b.onclick=()=>{
+      if(songs.some(s=>!s.example)&&!b.dataset.armed){b.dataset.armed='1';b.classList.add('armed');b.textContent='Replaces your list · tap again';setTimeout(()=>{b.dataset.armed='';b.classList.remove('armed');b.textContent='Load'},4000);return}
+      loadGig(g);
+    };
+    box.append(el);
+  });
+}
+async function loadGig(g){
+  stopAll();const st=$('setStatus');st.classList.remove('err');
+  try{
+    const base='gigs/'+g.id+'/',sl=await (await fetch(base+'setlist.json',{cache:'no-store'})).json(),out=[];
+    for(const [i,x] of sl.songs.entries()){
+      st.textContent=`Loading ${i+1} of ${sl.songs.length}: ${x.name}`;
+      const s={id:'g'+Date.now().toString(36)+'-'+i,name:x.name,bpm:x.bpm||null,bpb:x.bpb||4,bars:x.bars||4,gridT:0,startT:0,order:i,rev:1,gig:g.id,note:x.note||'',fileName:'',audio:null,clip:null};
+      if(x.clip){
+        try{
+          const ab=await (await fetch(base+x.clip)).arrayBuffer(),buf=await decodeAudio(ab),d=detect(buf,0,buf.duration,s.bpb);
+          if(!s.bpm)s.bpm=d.bpm;s.gridT=d.gridT;s.audio=ab;s.fileName=x.clip.split('/').pop();
+          s.startT=snap(s,d.gridT+barDur(s),buf);s.clip=clipFrom(buf,s.startT,grooveDur(s));
+        }catch(e){s.note=(s.note?s.note+' · ':'')+'clip failed to load'}
+      }
+      out.push(s);
+    }
+    if(db){await dbClear();for(const s of out)await dbPut(s)}
+    songs=out;cur=0;st.textContent='';renderList();toast(`Loaded ${out.length} songs`);
+  }catch(e){st.classList.add('err');st.textContent='Could not load the gig setlist. Check your internet connection and try again.'}
+}
+
+/* ---------- backup / restore / copy ---------- */
+const settingsOf=s=>({name:s.name,bpm:s.bpm,bpb:s.bpb,bars:s.bars,gridT:s.gridT,startT:s.startT,order:s.order,note:s.note||''});
+$('copyList').onclick=()=>{
+  const txt=songs.map((s,i)=>`${i+1}. ${s.name} — ${s.bpm?fmtBpm(s.bpm)+' BPM':'BPM not set'} · ${s.bpb}/bar`).join('\n');
+  navigator.clipboard.writeText(txt).then(()=>toast('BPM list copied'),()=>toast('Copy failed'));
+};
+$('saveBackup').onclick=()=>{
+  const blob=new Blob([JSON.stringify({app:'stageclick',v:1,saved:new Date().toISOString(),songs:songs.map(settingsOf)},null,1)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='stageclick-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+};
+$('restoreFile').onchange=async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{
+    const bk=JSON.parse(await f.text());if(!bk||!Array.isArray(bk.songs))throw 0;
+    const byName=new Map(songs.map(s=>[s.name.toLowerCase(),s])),out=[];
+    for(const [i,b] of bk.songs.entries()){
+      let s=byName.get(String(b.name).toLowerCase());
+      if(s){byName.delete(s.name.toLowerCase());const moved=s.startT!==b.startT||s.bpm!==b.bpm||s.bars!==b.bars||s.bpb!==b.bpb;Object.assign(s,settingsOf(b));
+        if(moved&&s.audio&&s.bpm){const buf=await decodeAudio(s.audio);s.clip=clipFrom(buf,s.startT,grooveDur(s));s.rev=(s.rev||0)+1}}
+      else s={id:'r'+Date.now().toString(36)+'-'+i,...settingsOf(b),rev:1,audio:null,clip:null,fileName:''};
+      s.order=i;out.push(s);
+    }
+    for(const s of byName.values()){s.order=out.length;out.push(s)}
+    if(db)for(const s of out)await dbPut(s);
+    songs=out;renderList();toast('Backup restored');
+  }catch(err){toast('That file is not a Stageclick backup')}
+};
 
 /* ---------- boot ---------- */
 (async function boot(){
@@ -565,7 +662,7 @@ window.addEventListener('resize',()=>{if(view==='edit'){drawWave();drawZoom()}})
     db=null;songs=[makeExample()];
     const st=$('setStatus');st.classList.add('err');st.textContent='Safari is blocking storage for this page, so songs will not be kept after you close it. Turn off Private Browsing and reload.';
   }
-  renderList();
+  renderList();loadGigIndex();
 })();
 </script>
 </html>
