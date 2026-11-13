@@ -72,6 +72,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .state{font-family:var(--display);font-weight:600;font-size:22px;letter-spacing:.04em;text-transform:uppercase;min-height:28px;font-variant-numeric:tabular-nums}
 .state .g{color:var(--tally)}
 .go{font-family:var(--display);font-weight:800;font-size:34px;letter-spacing:.04em;text-transform:uppercase;min-height:96px;border-radius:14px}
+.go.noclip{background:var(--panel);border:3px dashed var(--tally);color:var(--tally)}
 .go.stop{background:var(--down);border-color:var(--down);color:#fff}
 .nav{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .nav .btn{min-height:96px;font-family:var(--display);font-weight:800;font-size:28px;text-transform:uppercase;letter-spacing:.04em}
@@ -413,7 +414,7 @@ const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 function renderShow(){
   store.set('cur',cur);
   if(!songs.length){$('shName').textContent='No songs';$('shBpm').textContent='–';$('shPos').textContent='Setlist is empty';$('shGo').disabled=true;return}
-  cur=Math.min(cur,songs.length-1);const s=songs[cur];$('shGo').disabled=!(s.clip&&s.bpm);$('shClick').disabled=!s.bpm;
+  cur=Math.min(cur,songs.length-1);const s=songs[cur];$('shGo').disabled=!s.bpm;$('shGo').classList.toggle('noclip',!s.clip);$('shClick').disabled=!s.bpm;
   $('shPos').textContent=`Song ${cur+1} of ${songs.length}`;$('shName').textContent=s.name;$('shBpm').textContent=fmtBpm(s.bpm);$('shMeter').textContent=s.bpb+' beats/bar';
   const n=songs[cur+1];$('nxName').textContent=n?n.name:'End of set';$('nxMeta').textContent=n?`${n.bpm?fmtBpm(n.bpm):'No'} BPM · ${n.bpb} beats/bar`:'This is the last song';
   $('shPrev').disabled=cur===0;$('shNext').disabled=!n;
@@ -421,12 +422,14 @@ function renderShow(){
   renderShowState();
 }
 let lastState='';
-function renderShowState(txt){const h=txt||'Ready';if(h!==lastState){$('shState').innerHTML=h;lastState=h}const go=$('shGo');const playing=eng.running&&eng.owner==='show';go.classList.toggle('stop',playing);const s=songs[cur];go.textContent=playing?'Stop':!s||!s.bpm?'Set the BPM in Setlist':!s.clip?'No groove clip yet':'Play groove → click'}
+function renderShowState(txt){const h=txt||'Ready';if(h!==lastState){$('shState').innerHTML=h;lastState=h}const go=$('shGo');const playing=eng.running&&eng.owner==='show';go.classList.toggle('stop',playing);const s=songs[cur];go.textContent=playing?'Stop':!s||!s.bpm?'Set the BPM in Setlist':!s.clip?'Click only · no groove':'Play groove → click'}
 let lastLit=-2;
 function setLights(k){if(k===lastLit)return;lastLit=k;[...$('lights').children].forEach((d,i)=>d.classList.toggle('on',i===k))}
 $('shGo').onclick=async()=>{
   if(eng.running&&eng.owner==='show'){stopAll();return}
-  stopAll();const s=songs[cur];if(!s)return;const c=await live(),t0=c.currentTime+0.15,dur=grooveDur(s);
+  stopAll();const s=songs[cur];if(!s||!s.bpm)return;
+  if(!s.clip){const c=await live();startClick(c.currentTime+0.1,s.bpm,s.bpb,{owner:'show'});renderShowState('Click');wake();return}
+  const c=await live(),t0=c.currentTime+0.15,dur=grooveDur(s);
   playBuf(clipBuffer(s),t0,0,dur);
   startClick(t0,s.bpm,s.bpb,{overlay:$('overlay').checked,grooveEnd:t0+dur,owner:'show'});
   renderShowState('Starting…');wake();
@@ -436,7 +439,7 @@ $('shStop').onclick=stopAll;
 let showSave=null,showTaps=[];
 function setShowBpm(b){
   const s=songs[cur];if(!s||!isFinite(b))return;b=Math.max(30,Math.min(300,Math.round(b)));s.bpm=b;
-  $('shBpm').textContent=fmtBpm(b);$('shClick').disabled=false;$('shGo').disabled=!s.clip;
+  $('shBpm').textContent=fmtBpm(b);$('shClick').disabled=false;$('shGo').disabled=false;
   if(eng.running&&eng.owner==='show'&&eng.next>=eng.grooveEnd)eng.bpm=b;   // live change once the click is on its own
   if(!eng.running)renderShowState();
   clearTimeout(showSave);showSave=setTimeout(async()=>{try{if(db)await dbPut(s);toast('Saved '+b+' BPM')}catch(e){toast('Could not save the BPM')}},600);
