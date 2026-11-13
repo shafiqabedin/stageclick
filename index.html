@@ -198,7 +198,7 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
       <span class="label">Recording from the phone mic</span>
       <div class="rectime" id="recTime">0:00</div>
       <div class="meter"><i id="recLevel"></i></div>
-      <div class="muted" id="recBpm">Play the song. The BPM estimate appears after about 6 seconds.</div>
+      <div class="muted" id="recBpm">Play the song. The BPM estimate appears after about 8 seconds.</div>
       <div class="grid2"><button class="btn primary" id="recStop">Stop &amp; save</button><button class="btn" id="recCancel">Cancel</button></div>
     </div>
     <input type="file" id="edFile" accept="audio/*,.m4a,.mp3,.wav,.aac,.caf" hidden>
@@ -278,7 +278,8 @@ async function live(){
   let c=getCtx();
   if(c.state!=='running'){
     try{await Promise.race([c.resume(),new Promise(r=>setTimeout(r,400))])}catch(e){}
-    if(c.state!=='running'){try{c.close()}catch(e){}ctx=null;clipCache.clear();c=getCtx();try{await Promise.race([c.resume(),new Promise(r=>setTimeout(r,400))])}catch(e){}}
+    if(c.state!=='running'){try{c.close()}catch(e){}ctx=null;clipCache.clear();c=getCtx();try{await Promise.race([c.resume(),new Promise(r=>setTimeout(r,400))])}catch(e){}
+    if(typeof mic!=='undefined'&&mic.mode&&!mic.busy){mic.busy=true;try{await micWire()}catch(e){}mic.busy=false}}
   }
   return c;
 }
@@ -324,45 +325,61 @@ function stopAll(){
 }
 
 /* ---------- BPM detection ---------- */
+/* DSP-BEGIN (spectral-flux tempo; validated on rehearsal audio: 86-94% within ±2 BPM with a target) */
+const FFTN=1024;let fftTab=null;
+function fftInit(){
+  const n=FFTN,bits=Math.log2(n),rev=new Uint16Array(n),cs=new Float32Array(n/2),sn=new Float32Array(n/2),win=new Float32Array(n);
+  for(let i=0;i<n;i++){let r=0;for(let b=0;b<bits;b++)r|=((i>>b)&1)<<(bits-1-b);rev[i]=r;win[i]=0.5-0.5*Math.cos(2*Math.PI*i/n)}
+  for(let i=0;i<n/2;i++){cs[i]=Math.cos(2*Math.PI*i/n);sn[i]=-Math.sin(2*Math.PI*i/n)}
+  fftTab={rev,cs,sn,win,re:new Float32Array(n),im:new Float32Array(n)};
+}
+function fftLogMag(x,off,out){
+  const{rev,cs,sn,win,re,im}=fftTab,n=FFTN;
+  for(let i=0;i<n;i++){const j=rev[i];re[j]=x[off+i]*win[i];im[j]=0}
+  for(let size=2;size<=n;size<<=1){const half=size>>1,step=n/size;
+    for(let i=0;i<n;i+=size)for(let k=0;k<half;k++){
+      const tr=cs[k*step],ti=sn[k*step],a=i+k,b=a+half,xr=re[b]*tr-im[b]*ti,xi=re[b]*ti+im[b]*tr;
+      re[b]=re[a]-xr;im[b]=im[a]-xi;re[a]+=xr;im[a]+=xi}}
+  for(let k=0;k<=n/2;k++)out[k]=Math.log1p(100*Math.sqrt(re[k]*re[k]+im[k]*im[k]));
+}
 function onsets(buf,from,len){
-  const sr=buf.sampleRate,n0=Math.max(0,Math.floor(from*sr)),n1=Math.min(buf.length,Math.floor((from+len)*sr));
+  const sr0=buf.sampleRate,n0=Math.max(0,Math.floor(from*sr0)),n1=Math.min(buf.length,Math.floor((from+len)*sr0));
   const chs=[];for(let c=0;c<Math.min(2,buf.numberOfChannels);c++)chs.push(buf.getChannelData(c));
-  const nc=chs.length,hop=Math.max(64,Math.round(sr/172)),fps=sr/hop,nF=Math.floor((n1-n0)/hop);
-  const L=new Float32Array(nF),H=new Float32Array(nF);
-  const aL=1-Math.exp(-2*Math.PI*150/sr),aH=1-Math.exp(-2*Math.PI*2500/sr);
-  let lp=0,lp2=0,i=n0;
+  const nc=chs.length,dec=sr0>=44100?2:1,sr=sr0/dec,M=Math.max(0,Math.floor((n1-n0)/dec)),x=new Float32Array(M);
+  for(let i=0;i<M;i++){let v=0;for(let d=0;d<dec;d++){const k=n0+i*dec+d;v+=nc>1?(chs[0][k]+chs[1][k])*0.5:chs[0][k]}x[i]=v/dec}
+  if(!fftTab)fftInit();
+  const hop=128,fps=sr/hop,nF=Math.max(0,Math.floor((M-FFTN)/hop)+1),H=FFTN/2+1,lowBin=Math.max(1,Math.round(150*FFTN/sr));
+  let prev=new Float32Array(H),cur=new Float32Array(H);const raw=new Float32Array(nF),low=new Float32Array(nF);
   for(let f=0;f<nF;f++){
-    let eL=0,eH=0;
-    for(let k=0;k<hop;k++,i++){
-      let x=chs[0][i];if(nc>1)x=(x+chs[1][i])*0.5;
-      lp+=aL*(x-lp);lp2+=aH*(x-lp2);const h=x-lp2;eL+=lp*lp;eH+=h*h;
-    }
-    L[f]=Math.log(1+1e4*eL/hop);H[f]=Math.log(1+1e4*eH/hop);
+    fftLogMag(x,f*hop,cur);
+    if(f>0){let s=0,l=0;for(let k=0;k<H;k++){const d=cur[k]-prev[k];if(d>0){s+=d;if(k<=lowBin)l+=d}}raw[f]=s;low[f]=l}
+    const t=prev;prev=cur;cur=t;
   }
-  const flux=a=>{const o=new Float32Array(a.length);let m=0;for(let f=1;f<a.length;f++){o[f]=Math.max(0,a[f]-a[f-1]);m+=o[f]}m=m/a.length||1;for(let f=0;f<o.length;f++)o[f]/=m;return o};
-  const fL=flux(L),fH=flux(H),on=new Float32Array(nF),w=Math.round(fps*0.4);
-  let acc=0;const raw=new Float32Array(nF);for(let f=0;f<nF;f++)raw[f]=fL[f]+fH[f];
+  const norm=a=>{let m=0;for(const v of a)m+=v;m=m/a.length||1;for(let i=0;i<a.length;i++)a[i]/=m};norm(raw);norm(low);
+  const w=Math.round(fps*0.4),on=new Float32Array(nF);let acc=0;
   for(let f=0;f<nF;f++){acc+=raw[f];if(f>=w)acc-=raw[f-w];on[f]=Math.max(0,raw[f]-acc/Math.min(f+1,w))}
-  return{on,low:fL,fps};
+  return{on,low,fps,t0:FFTN/2/sr};
 }
 const interp=(a,t)=>{const i=Math.floor(t),r=t-i;return i+1<a.length?a[i]*(1-r)+a[i+1]*r:0};
 function acAt(o,lag){const Lg=Math.floor(lag),r=lag-Lg,n=o.length-Lg-1;if(n<16)return 0;let s=0;for(let i=0;i<n;i++)s+=o[i]*(o[i+Lg]*(1-r)+o[i+Lg+1]*r);return s/n}
-function tempoScore(o,fps,bpm){
-  const lag=fps*60/bpm;let s=acAt(o,lag)+0.5*acAt(o,2*lag);if(4*lag<o.length/2)s+=0.25*acAt(o,4*lag);
-  return s*Math.exp(-0.5*Math.pow(Math.log2(bpm/112),2));
+function tempoScore(o,fps,bpm,prior){
+  const lag=fps*60/bpm,h=o.length/2;let s=acAt(o,lag);
+  if(2*lag<h)s+=0.5*acAt(o,2*lag);if(4*lag<h)s+=0.25*acAt(o,4*lag);if(3*lag<h)s+=0.33*acAt(o,3*lag);
+  return prior?s*Math.exp(-0.5*Math.pow(Math.log2(bpm/112),2)):s;
 }
-function detect(buf,from,len,bpb,lo=55,hi=210){
-  const{on,low,fps}=onsets(buf,from,len);
-  let best=-1,bb=120;
-  for(let b=lo;b<=hi;b+=0.5){const s=tempoScore(on,fps,b);if(s>best){best=s;bb=b}}
-  for(let b=bb-0.6;b<=bb+0.6;b+=0.05){const s=tempoScore(on,fps,b);if(s>best){best=s;bb=b}}
+function detect(buf,from,len,bpb,lo=55,hi=210,prior=true){
+  const{on,low,fps,t0}=onsets(buf,from,len);
+  let best=-Infinity,bb=(lo+hi)/2;
+  for(let b=lo;b<=hi;b+=0.5){const s=tempoScore(on,fps,b,prior);if(s>best){best=s;bb=b}}
+  const c=bb;for(let b=c-0.6;b<=c+0.6;b+=0.05){const s=tempoScore(on,fps,b,prior);if(s>best){best=s;bb=b}}
   const bpm=Math.round(bb*10)/10,P=fps*60/bpm;
   let bo=0;best=-1;
   for(let off=0;off<P;off+=0.5){let s=0;for(let t=off;t<on.length-1;t+=P)s+=interp(on,t);if(s>best){best=s;bo=off}}
   let bd=0,bD=-1;
   for(let k=0;k<bpb;k++){let s=0;for(let t=bo+k*P;t<low.length-1;t+=P*bpb)s+=interp(low,t);if(s>bD){bD=s;bd=k}}
-  return{bpm,gridT:from+(bo+bd*P)/fps};
+  return{bpm,gridT:from+t0+(bo+bd*P)/fps};
 }
+/* DSP-END */
 function loudStart(buf){
   const d=buf.getChannelData(0),sr=buf.sampleRate,blk=sr,nb=Math.floor(d.length/blk),r=[];
   for(let b=0;b<nb;b++){let s=0;for(let i=b*blk;i<(b+1)*blk;i+=8)s+=d[i]*d[i];r.push(s)}
@@ -735,7 +752,7 @@ async function micWire(){
   // (re)build the graph; iOS can leave the context stuck after the mic switches the audio session
   try{mic.src&&mic.src.disconnect();mic.proc&&mic.proc.disconnect();mic.sink&&mic.sink.disconnect()}catch(e){}
   const c=await live(),src=c.createMediaStreamSource(mic.stream),proc=c.createScriptProcessor(4096,1,1),sink=c.createGain();sink.gain.value=0;
-  const sr=c.sampleRate,RING=Math.round(sr*12);
+  const sr=c.sampleRate,RING=Math.round(sr*20);
   if(!mic.ring||mic.sr!==sr){mic.ring=new Float32Array(RING);mic.pos=0;mic.fill=0}
   Object.assign(mic,{src,proc,sink,sr,lastFrames:mic.frames,wiredAt:performance.now()});
   proc.onaudioprocess=e=>{
@@ -757,8 +774,8 @@ function micStop(){
 }
 function ringBuf(){const n=mic.fill,R=mic.ring.length,o=new Float32Array(n),st=(mic.pos-n+R)%R;for(let i=0;i<n;i++)o[i]=mic.ring[(st+i)%R];return{sampleRate:mic.sr,length:n,numberOfChannels:1,getChannelData:()=>o}}
 function liveBpm(target){
-  if(mic.fill<mic.sr*6)return null;const b=ringBuf();
-  return detect(b,0,b.length/b.sampleRate,4,target?Math.max(40,target*0.8):55,target?Math.min(250,target*1.25):210).bpm;
+  if(mic.fill<mic.sr*8)return null;const b=ringBuf();
+  return detect(b,0,b.length/b.sampleRate,4,target?Math.max(40,target*0.8):55,target?Math.min(250,target*1.25):210,!target).bpm;
 }
 function micTick(){
   mic.n++;const secs=(performance.now()-mic.t0)/1000;
@@ -770,13 +787,13 @@ function micTick(){
   if(mic.mode==='rec'){
     $('recTime').textContent=`${Math.floor(secs/60)}:${String(Math.floor(secs%60)).padStart(2,'0')}`;
     const lv=$('recLevel');lv.style.width=Math.min(100,mic.peak*100)+'%';lv.classList.toggle('hot',mic.peak>0.97);
-    if(mic.n%8===0){const b=liveBpm(null);if(b)$('recBpm').textContent=`Live estimate: about ${Math.round(b)} BPM`+(mic.peak>0.97?' · too loud, move the phone away':'')}
+    if(mic.n%16===0){const b=liveBpm(null);if(b)$('recBpm').textContent=`Live estimate: about ${Math.round(b)} BPM`+(mic.peak>0.97?' · too loud, move the phone away':'')}
     if(secs>=240)finishRec();
   }else if(mic.mode==='listen'&&mic.n%8===0){
     const s=songs[cur],t=s&&s.bpm,l=$('shLive');
     if(!mic.frames){l.className='live bad';l.textContent=mic.rewired>=3?'Mic not working · tap Stop, then Listen':'Starting mic…';return}
     const b0=liveBpm(t);
-    if(!b0){l.className='live';l.textContent=`Listening… ${Math.max(0,6-Math.floor(mic.fill/mic.sr))} s`;return}
+    if(!b0){l.className='live';l.textContent=`Listening… ${Math.max(0,8-Math.floor(mic.fill/mic.sr))} s`;return}
     if(mic.est.length&&t&&mic.estFor!==t)mic.est=[];mic.estFor=t;mic.est.push(b0);if(mic.est.length>3)mic.est.shift();
     const srt=[...mic.est].sort((x,y)=>x-y),b=srt[Math.floor(srt.length/2)],r=Math.round(b);
     if(!t){l.className='live';l.textContent=`Band ≈ ${r} BPM`;return}
@@ -789,7 +806,7 @@ function micError(e){
 }
 $('edRec').onclick=async()=>{
   stopAll();
-  try{await micStart('rec');$('recPanel').hidden=false;$('edSrc').hidden=true;$('recTime').textContent='0:00';$('recBpm').textContent='Play the song. The BPM estimate appears after about 6 seconds.'}
+  try{await micStart('rec');$('recPanel').hidden=false;$('edSrc').hidden=true;$('recTime').textContent='0:00';$('recBpm').textContent='Play the song. The BPM estimate appears after about 8 seconds.'}
   catch(e){edStatus(micError(e),true);toast(micError(e))}
 };
 $('recCancel').onclick=()=>micStop();
