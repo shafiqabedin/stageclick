@@ -72,6 +72,13 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .state{font-family:var(--display);font-weight:600;font-size:22px;letter-spacing:.04em;text-transform:uppercase;min-height:28px;font-variant-numeric:tabular-nums}
 .state .g{color:var(--tally)}
 .go{font-family:var(--display);font-weight:800;font-size:34px;letter-spacing:.04em;text-transform:uppercase;min-height:96px;border-radius:14px}
+.recpanel{display:flex;flex-direction:column;gap:10px;border:2px solid var(--down);border-radius:12px;padding:14px}
+.rectime{font-family:var(--display);font-weight:800;font-size:48px;line-height:1;color:var(--down);font-variant-numeric:tabular-nums}
+.meter{height:12px;background:var(--line);border-radius:6px;overflow:hidden}.meter i{display:block;height:100%;width:0;background:var(--ok)}.meter i.hot{background:var(--down)}
+.listen{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center}
+.listen .btn.on{background:var(--down);border-color:var(--down);color:#fff}
+.live{font-family:var(--display);font-weight:800;font-size:24px;text-transform:uppercase;font-variant-numeric:tabular-nums;color:var(--dim)}
+.live.ok{color:var(--ok)}.live.off{color:var(--tally)}.live.bad{color:var(--down)}
 .go.noclip{background:var(--panel);border:3px dashed var(--tally);color:var(--tally)}
 .go.stop{background:var(--down);border-color:var(--down);color:#fff}
 .nav{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -113,7 +120,10 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
   <section id="vSet" class="stage">
     <div class="list" id="list"></div>
     <div id="gigs" class="field"></div>
-    <label class="btn primary" style="text-align:center" for="file">+ Add song from a recording</label>
+    <div class="grid2">
+      <label class="btn primary" style="text-align:center" for="file">+ Add from a file</label>
+      <button class="btn primary" id="newRec">● Record a new song</button>
+    </div>
     <div class="field">
       <span class="label">Keep your settings safe</span>
       <div class="grid2">
@@ -144,6 +154,7 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
     <div class="sname" id="shName">—</div>
     <div class="bpmrow"><button class="btn adj" id="shMinus" aria-label="Minus 1 BPM">−1</button><div class="bpmbig"><span class="v" id="shBpm">0</span><span class="u">BPM</span></div><button class="btn adj" id="shPlus" aria-label="Plus 1 BPM">+1</button></div>
     <div class="lights" id="lights"></div>
+    <div class="listen"><button class="btn" id="shListen">Listen to the band</button><div class="live" id="shLive">Mic off</div></div>
     <div class="state" id="shState">Ready</div>
     <button class="btn primary go" id="shGo">Play groove → click</button>
     <div class="nav">
@@ -168,7 +179,17 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
   <section id="vEdit" class="stage" hidden>
     <div class="row"><button class="btn" id="edBack">◀ Back</button><span class="grow"></span><span class="pill ex" id="edEx" hidden>Example</span></div>
     <div class="field"><label class="label" for="edName">Song name</label><input type="text" id="edName" autocomplete="off"></div>
-    <label class="btn" style="text-align:center" for="edFile" id="edAttach">Add a recording for this song</label>
+    <div class="grid2" id="edSrc">
+      <button class="btn primary" id="edRec">● Record</button>
+      <label class="btn" style="text-align:center" for="edFile" id="edAttach">Add a recording for this song</label>
+    </div>
+    <div class="recpanel" id="recPanel" hidden>
+      <span class="label">Recording from the phone mic</span>
+      <div class="rectime" id="recTime">0:00</div>
+      <div class="meter"><i id="recLevel"></i></div>
+      <div class="muted" id="recBpm">Play the song. The BPM estimate appears after about 6 seconds.</div>
+      <div class="grid2"><button class="btn primary" id="recStop">Stop &amp; save</button><button class="btn" id="recCancel">Cancel</button></div>
+    </div>
     <input type="file" id="edFile" accept="audio/*,.m4a,.mp3,.wav,.aac,.caf" hidden>
     <div class="field" id="edWaveField">
       <span class="label">Whole recording · tap to pick where the groove starts</span>
@@ -318,10 +339,10 @@ function tempoScore(o,fps,bpm){
   const lag=fps*60/bpm;let s=acAt(o,lag)+0.5*acAt(o,2*lag);if(4*lag<o.length/2)s+=0.25*acAt(o,4*lag);
   return s*Math.exp(-0.5*Math.pow(Math.log2(bpm/112),2));
 }
-function detect(buf,from,len,bpb){
+function detect(buf,from,len,bpb,lo=55,hi=210){
   const{on,low,fps}=onsets(buf,from,len);
   let best=-1,bb=120;
-  for(let b=55;b<=210;b+=0.5){const s=tempoScore(on,fps,b);if(s>best){best=s;bb=b}}
+  for(let b=lo;b<=hi;b+=0.5){const s=tempoScore(on,fps,b);if(s>best){best=s;bb=b}}
   for(let b=bb-0.6;b<=bb+0.6;b+=0.05){const s=tempoScore(on,fps,b);if(s>best){best=s;bb=b}}
   const bpm=Math.round(bb*10)/10,P=fps*60/bpm;
   let bo=0;best=-1;
@@ -380,6 +401,7 @@ function wav(chs,sr){
 /* ---------- views ---------- */
 let view='set';
 function show(v){
+  if(v!=='edit'&&mic.mode==='rec')micStop();
   view=v;if(v!=='edit')store.set('view',v);$('vSet').hidden=v!=='set';$('vShow').hidden=v!=='show';$('vEdit').hidden=v!=='edit';
   $('tabSet').setAttribute('aria-pressed',v==='set'||v==='edit');$('tabShow').setAttribute('aria-pressed',v==='show');
   if(v==='show'){renderShow();wake()}
@@ -679,6 +701,92 @@ $('restoreFile').onchange=async e=>{
     if(db)for(const s of out)await dbPut(s);
     songs=out;renderList();toast('Backup restored');
   }catch(err){toast('That file is not a Stageclick backup')}
+};
+
+/* ---------- microphone: record + live BPM ---------- */
+const mic={mode:null};
+async function micStart(mode){
+  micStop();
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('nomic');
+  try{if(navigator.audioSession)navigator.audioSession.type='play-and-record'}catch(e){}
+  const c=await live();
+  const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}});
+  const src=c.createMediaStreamSource(stream),proc=c.createScriptProcessor(4096,1,1),sink=c.createGain();sink.gain.value=0;
+  const sr=c.sampleRate,RING=Math.round(sr*12);
+  Object.assign(mic,{mode,stream,src,proc,sink,chunks:[],len:0,ring:new Float32Array(RING),pos:0,fill:0,sr,t0:performance.now(),peak:0,n:0});
+  proc.onaudioprocess=e=>{
+    const x=e.inputBuffer.getChannelData(0);
+    if(mic.mode==='rec'){mic.chunks.push(new Float32Array(x));mic.len+=x.length}
+    let p=0;for(let i=0;i<x.length;i++){const v=x[i];mic.ring[mic.pos]=v;mic.pos=(mic.pos+1)%RING;const a=v<0?-v:v;if(a>p)p=a}
+    mic.fill=Math.min(RING,mic.fill+x.length);mic.peak=Math.max(p,mic.peak*0.85);
+  };
+  src.connect(proc);proc.connect(sink);sink.connect(c.destination);
+  mic.timer=setInterval(micTick,250);
+}
+function micStop(){
+  if(!mic.mode)return;clearInterval(mic.timer);
+  try{mic.src.disconnect();mic.proc.disconnect();mic.sink.disconnect()}catch(e){}
+  try{mic.stream.getTracks().forEach(t=>t.stop())}catch(e){}
+  try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}
+  const was=mic.mode;mic.mode=null;
+  if(was==='listen'){$('shListen').classList.remove('on');$('shListen').textContent='Listen to the band';const l=$('shLive');l.className='live';l.textContent='Mic off'}
+  if(was==='rec')$('recPanel').hidden=true,$('edSrc').hidden=false;
+}
+function ringBuf(){const n=mic.fill,R=mic.ring.length,o=new Float32Array(n),st=(mic.pos-n+R)%R;for(let i=0;i<n;i++)o[i]=mic.ring[(st+i)%R];return{sampleRate:mic.sr,length:n,numberOfChannels:1,getChannelData:()=>o}}
+function liveBpm(target){
+  if(mic.fill<mic.sr*6)return null;const b=ringBuf();
+  return detect(b,0,b.length/b.sampleRate,4,target?Math.max(40,target*0.8):55,target?Math.min(250,target*1.25):210).bpm;
+}
+function micTick(){
+  mic.n++;const secs=(performance.now()-mic.t0)/1000;
+  if(mic.mode==='rec'){
+    $('recTime').textContent=`${Math.floor(secs/60)}:${String(Math.floor(secs%60)).padStart(2,'0')}`;
+    const lv=$('recLevel');lv.style.width=Math.min(100,mic.peak*100)+'%';lv.classList.toggle('hot',mic.peak>0.97);
+    if(mic.n%8===0){const b=liveBpm(null);if(b)$('recBpm').textContent=`Live estimate: about ${Math.round(b)} BPM`+(mic.peak>0.97?' · too loud, move the phone away':'')}
+    if(secs>=240)finishRec();
+  }else if(mic.mode==='listen'&&mic.n%8===0){
+    const s=songs[cur],t=s&&s.bpm,b=liveBpm(t),l=$('shLive');
+    if(!b){l.className='live';l.textContent='Listening…';return}
+    const r=Math.round(b);
+    if(!t){l.className='live';l.textContent=`Band ≈ ${r} BPM`;return}
+    const d=r-Math.round(t);l.className='live '+(Math.abs(d)<=2?'ok':Math.abs(d)<=5?'off':'bad');
+    l.textContent=`Band ≈ ${r} · ${d===0?'on tempo':d>0?'+'+d+' fast':d+' slow'}`;
+  }
+}
+function micError(e){
+  return e&&e.name==='NotAllowedError'?'Microphone access is blocked. In iPhone Settings → Apps → Safari → Microphone, choose Allow, then try again.':'The microphone could not start. Close other apps using it and try again.';
+}
+$('edRec').onclick=async()=>{
+  stopAll();
+  try{await micStart('rec');$('recPanel').hidden=false;$('edSrc').hidden=true;$('recTime').textContent='0:00';$('recBpm').textContent='Play the song. The BPM estimate appears after about 6 seconds.'}
+  catch(e){edStatus(micError(e),true);toast(micError(e))}
+};
+$('recCancel').onclick=()=>micStop();
+$('recStop').onclick=()=>finishRec();
+async function finishRec(){
+  if(mic.mode!=='rec'||!ed)return micStop();
+  const sr=mic.sr,n=mic.len,data=new Float32Array(n);let o=0;for(const ch of mic.chunks){data.set(ch,o);o+=ch.length}
+  micStop();
+  if(n<sr*8){toast('Record at least 8 seconds of the band playing');return}
+  let d=data,r=sr;if(sr>=44100){const m=Math.floor(n/2);d=new Float32Array(m);for(let i=0;i<m;i++)d[i]=(data[2*i]+data[2*i+1])*0.5;r=sr/2}
+  const buf=getCtx().createBuffer(1,d.length,r);buf.getChannelData(0).set(d);
+  const s=ed.song,dt=detect(buf,1,Math.min(45,buf.duration-1),s.bpb),old=s.bpm;
+  s.bpm=dt.bpm;s.gridT=dt.gridT;s.audio=wav([d],r);s.fileName='mic-'+new Date().toISOString().slice(0,16)+'.wav';ed.buf=buf;s.startT=snap(s,Math.max(dt.gridT,1));
+  refreshEditor();
+  try{
+    s.name=($('edName').value.trim()||s.name||'Untitled song');s.clip=clipFrom(buf,s.startT,grooveDur(s));s.rev=(s.rev||0)+1;
+    if(db)await dbPut(s);const i=songs.findIndex(x=>x.id===s.id);if(i>=0)songs[i]=s;else{s.order=songs.length;songs.push(s);if(db)await dbPut(s)}ed.isNew=false;
+    toast(`Saved · ${fmtBpm(dt.bpm)} BPM`+(old&&Math.abs(old-dt.bpm)>=1?` (was ${fmtBpm(old)})`:''));
+  }catch(e){toast('Recorded, but could not save. Tap Save to try again.')}
+};
+$('newRec').onclick=()=>{
+  stopAll();ed={song:{id:'m'+Date.now().toString(36),name:'New song',bpm:null,bpb:4,bars:4,gridT:0,startT:0,order:songs.length,rev:0,fileName:'',audio:null,clip:null},buf:null,isNew:true};
+  openEditorUI();setTimeout(()=>{$('edName').select&&$('edName').focus()},50);
+};
+$('shListen').onclick=async()=>{
+  if(mic.mode==='listen'){micStop();return}
+  try{await micStart('listen');$('shListen').classList.add('on');$('shListen').textContent='Stop listening';$('shLive').textContent='Listening…'}
+  catch(e){toast(micError(e))}
 };
 
 /* ---------- boot ---------- */
