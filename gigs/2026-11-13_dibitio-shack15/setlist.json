@@ -9,21 +9,24 @@
    "bpb": 4,
    "bars": 4,
    "clip": "clips/01_mon-shudhu-mon-chuyeche.mp3",
-   "source": "rehearsal 2026-11-09 @ 0:30"
+   "source": "rehearsal 2026-11-09 @ 0:30",
+   "confirmed": "2026-11-12 band run-through"
   },
   {
    "n": 2,
    "name": "Abar Elo Je Shondha",
-   "bpm": null,
+   "bpm": 95,
    "bpb": 4,
-   "bars": 4
+   "bars": 4,
+   "confirmed": "2026-11-12 band run-through"
   },
   {
    "n": 3,
    "name": "Sraboner Megh",
-   "bpm": null,
+   "bpm": 140,
    "bpb": 4,
-   "bars": 4
+   "bars": 4,
+   "confirmed": "2026-11-12 band run-through"
   },
   {
    "n": 4,
@@ -33,7 +36,7 @@
    "bars": 4,
    "clip": "clips/04_from-the-start.mp3",
    "source": "rehearsal 2026-11-09 @ 12:45",
-   "note": "Could be counted half-time (~79)"
+   "confirmed": "2026-11-12 band run-through"
   },
   {
    "n": 5,

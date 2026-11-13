@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
 <title>Stageclick</title>
@@ -17,6 +17,8 @@
   color-scheme:dark;
 }
 html,body{background:var(--bg);color:var(--fg)}
+*{touch-action:manipulation}
+button{-webkit-user-select:none;user-select:none}
 body{font-family:var(--body);font-size:16px;line-height:1.45;-webkit-tap-highlight-color:transparent}
 .wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 40px;display:flex;flex-direction:column;gap:16px}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -63,8 +65,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .bpmrow{display:grid;grid-template-columns:72px 1fr 72px;gap:8px;align-items:center}
 .bpmrow .bpmbig{justify-content:center}
 .adj{min-height:72px;font-family:var(--display);font-weight:800;font-size:28px}
-.lights{display:flex;gap:10px}
-.lights i{flex:1;height:34px;border-radius:8px;background:var(--panel);border:1px solid var(--line);transition:background .06s}
+.lights{display:flex;gap:8px}
+.lights i{flex:1;height:72px;border-radius:12px;background:var(--panel);border:1px solid var(--line);transition:background .06s}
 .lights i.on{background:var(--tally);border-color:var(--tally)}
 .lights i.on.one{background:var(--down);border-color:var(--down)}
 .state{font-family:var(--display);font-weight:600;font-size:22px;letter-spacing:.04em;text-transform:uppercase;min-height:28px;font-variant-numeric:tabular-nums}
@@ -140,7 +142,6 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
     <div class="pos"><span class="label" id="shPos">Song 1 of 1</span><span class="pill" id="shMeter">4/4</span></div>
     <div class="sname" id="shName">—</div>
     <div class="bpmrow"><button class="btn adj" id="shMinus" aria-label="Minus 1 BPM">−1</button><div class="bpmbig"><span class="v" id="shBpm">0</span><span class="u">BPM</span></div><button class="btn adj" id="shPlus" aria-label="Plus 1 BPM">+1</button></div>
-    <button class="btn" id="shTap">Tap the tempo (4+ taps)</button>
     <div class="lights" id="lights"></div>
     <div class="state" id="shState">Ready</div>
     <button class="btn primary go" id="shGo">Play groove → click</button>
@@ -157,6 +158,8 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
       <span class="label">Click</span><input type="range" id="volClick" min="0" max="1.5" step="0.01" value="0.9" aria-label="Click volume">
       <span class="label">Groove</span><input type="range" id="volGroove" min="0" max="1.5" step="0.01" value="0.9" aria-label="Groove volume">
     </div>
+    <div class="field"><label class="label" for="sound">Click sound</label>
+      <select id="sound"><option value="all">Every beat</option><option value="one">Beat 1 only</option><option value="off">Off · lights only</option></select></div>
     <label class="check"><input type="checkbox" id="overlay" checked> Play the click over the groove too</label>
   </section>
 
@@ -238,14 +241,21 @@ function getCtx(){
   }
   return ctx;
 }
-function live(){const c=getCtx();if(c.state!=='running')c.resume();return c}
+async function live(){
+  let c=getCtx();
+  if(c.state!=='running'){
+    try{await Promise.race([c.resume(),new Promise(r=>setTimeout(r,400))])}catch(e){}
+    if(c.state!=='running'){try{c.close()}catch(e){}ctx=null;clipCache.clear();c=getCtx();try{await Promise.race([c.resume(),new Promise(r=>setTimeout(r,400))])}catch(e){}}
+  }
+  return c;
+}
 function applyVol(){if(!ctx)return;clickGain.gain.value=+$('volClick').value;grooveGain.gain.value=+$('volGroove').value}
 
 const eng={running:false,timer:null,beats:[],src:null,owner:null};
 function blip(t,accent){
   const o=ctx.createOscillator(),g=ctx.createGain();
-  o.type='triangle';o.frequency.value=accent?1760:1245;
-  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(accent?1:0.62,t+0.0015);
+  o.type='triangle';o.frequency.value=1245;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.85,t+0.0015);
   g.gain.exponentialRampToValueAtTime(0.0008,t+0.055);
   o.connect(g);g.connect(clickGain);o.start(t);o.stop(t+0.07);
 }
@@ -258,7 +268,8 @@ function tick(){
   while(eng.next<ctx.currentTime+0.12){
     if(eng.next>=eng.stopAt-0.002){clearInterval(eng.timer);eng.endAt=eng.stopAt;break}
     const inG=eng.next<eng.grooveEnd-0.005;
-    if(!inG||eng.overlay)blip(eng.next,eng.beat%eng.bpb===0);
+    const snd=$('sound').value,one=eng.beat%eng.bpb===0;
+    if((!inG||eng.overlay)&&(snd==='all'||(snd==='one'&&one)))blip(eng.next,one);
     eng.beats.push({t:eng.next,b:eng.beat,g:inG});
     eng.beat++;eng.next+=60/eng.bpm;
   }
@@ -368,7 +379,7 @@ function wav(chs,sr){
 /* ---------- views ---------- */
 let view='set';
 function show(v){
-  view=v;$('vSet').hidden=v!=='set';$('vShow').hidden=v!=='show';$('vEdit').hidden=v!=='edit';
+  view=v;if(v!=='edit')store.set('view',v);$('vSet').hidden=v!=='set';$('vShow').hidden=v!=='show';$('vEdit').hidden=v!=='edit';
   $('tabSet').setAttribute('aria-pressed',v==='set'||v==='edit');$('tabShow').setAttribute('aria-pressed',v==='show');
   if(v==='show'){renderShow();wake()}
   if(v==='set')renderList();
@@ -400,24 +411,27 @@ async function move(i,d){
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 /* ---------- show ---------- */
 function renderShow(){
+  store.set('cur',cur);
   if(!songs.length){$('shName').textContent='No songs';$('shBpm').textContent='–';$('shPos').textContent='Setlist is empty';$('shGo').disabled=true;return}
   cur=Math.min(cur,songs.length-1);const s=songs[cur];$('shGo').disabled=!(s.clip&&s.bpm);$('shClick').disabled=!s.bpm;
   $('shPos').textContent=`Song ${cur+1} of ${songs.length}`;$('shName').textContent=s.name;$('shBpm').textContent=fmtBpm(s.bpm);$('shMeter').textContent=s.bpb+' beats/bar';
   const n=songs[cur+1];$('nxName').textContent=n?n.name:'End of set';$('nxMeta').textContent=n?`${n.bpm?fmtBpm(n.bpm):'No'} BPM · ${n.bpb} beats/bar`:'This is the last song';
   $('shPrev').disabled=cur===0;$('shNext').disabled=!n;
-  const lt=$('lights');lt.innerHTML='';for(let i=0;i<s.bpb;i++){const d=document.createElement('i');if(!i)d.className='one';lt.append(d)}
+  lastLit=-2;const lt=$('lights');lt.innerHTML='';for(let i=0;i<s.bpb;i++){const d=document.createElement('i');if(!i)d.className='one';lt.append(d)}
   renderShowState();
 }
-function renderShowState(txt){$('shState').innerHTML=txt||'Ready';const go=$('shGo');const playing=eng.running&&eng.owner==='show';go.classList.toggle('stop',playing);const s=songs[cur];go.textContent=playing?'Stop':!s||!s.bpm?'Set the BPM in Setlist':!s.clip?'No groove clip yet':'Play groove → click'}
-function setLights(k){[...$('lights').children].forEach((d,i)=>d.classList.toggle('on',i===k))}
-$('shGo').onclick=()=>{
+let lastState='';
+function renderShowState(txt){const h=txt||'Ready';if(h!==lastState){$('shState').innerHTML=h;lastState=h}const go=$('shGo');const playing=eng.running&&eng.owner==='show';go.classList.toggle('stop',playing);const s=songs[cur];go.textContent=playing?'Stop':!s||!s.bpm?'Set the BPM in Setlist':!s.clip?'No groove clip yet':'Play groove → click'}
+let lastLit=-2;
+function setLights(k){if(k===lastLit)return;lastLit=k;[...$('lights').children].forEach((d,i)=>d.classList.toggle('on',i===k))}
+$('shGo').onclick=async()=>{
   if(eng.running&&eng.owner==='show'){stopAll();return}
-  stopAll();const s=songs[cur];if(!s)return;const c=live(),t0=c.currentTime+0.15,dur=grooveDur(s);
+  stopAll();const s=songs[cur];if(!s)return;const c=await live(),t0=c.currentTime+0.15,dur=grooveDur(s);
   playBuf(clipBuffer(s),t0,0,dur);
   startClick(t0,s.bpm,s.bpb,{overlay:$('overlay').checked,grooveEnd:t0+dur,owner:'show'});
   renderShowState('Starting…');wake();
 };
-$('shClick').onclick=()=>{stopAll();const s=songs[cur];if(!s||!s.bpm)return;const c=live();startClick(c.currentTime+0.1,s.bpm,s.bpb,{owner:'show'});renderShowState('Click');wake()};
+$('shClick').onclick=async()=>{stopAll();const s=songs[cur];if(!s||!s.bpm)return;const c=await live();startClick(c.currentTime+0.1,s.bpm,s.bpb,{owner:'show'});renderShowState('Click');wake()};
 $('shStop').onclick=stopAll;
 let showSave=null,showTaps=[];
 function setShowBpm(b){
@@ -429,12 +443,6 @@ function setShowBpm(b){
 }
 $('shMinus').onclick=()=>setShowBpm((songs[cur]&&songs[cur].bpm||101)-1);
 $('shPlus').onclick=()=>setShowBpm((songs[cur]&&songs[cur].bpm||99)+1);
-$('shTap').onclick=()=>{
-  const t=performance.now(),b=$('shTap');if(showTaps.length&&t-showTaps[showTaps.length-1]>2000)showTaps=[];showTaps.push(t);if(showTaps.length>9)showTaps.shift();
-  if(showTaps.length>=4)setShowBpm(60000/((showTaps[showTaps.length-1]-showTaps[0])/(showTaps.length-1)));
-  else b.textContent='Tap '+showTaps.length+' of 4…';
-  clearTimeout(b.h);b.h=setTimeout(()=>{b.textContent='Tap the tempo (4+ taps)';showTaps=[]},2000);
-};
 $('shPrev').onclick=()=>{stopAll();showTaps=[];if(cur>0){cur--;renderShow()}};
 $('shNext').onclick=()=>{stopAll();if(cur<songs.length-1){cur++;renderShow()}};
 $('volClick').oninput=$('volGroove').oninput=()=>{applyVol();store.set('vol',[+$('volClick').value,+$('volGroove').value])};
@@ -529,9 +537,9 @@ $('beatFwd').onclick=()=>shift(60/ed.song.bpm);
 $('fineBack').onclick=()=>shift(-0.01);
 $('fineFwd').onclick=()=>shift(0.01);
 $('edName').oninput=()=>ed.song.name=$('edName').value;
-$('edCheck').onclick=()=>{
+$('edCheck').onclick=async()=>{
   if(eng.running&&eng.owner==='edit'){stopAll();return}
-  stopAll();const s=ed.song,c=live(),t0=c.currentTime+0.15,dur=grooveDur(s);
+  stopAll();const s=ed.song,c=await live(),t0=c.currentTime+0.15,dur=grooveDur(s);
   playBuf(ed.buf,t0,s.startT,dur);
   startClick(t0,s.bpm,s.bpb,{overlay:true,grooveEnd:t0+dur,stopAt:t0+dur,owner:'edit'});
   $('edCheck').textContent='Stop';
@@ -682,7 +690,13 @@ $('restoreFile').onchange=async e=>{
     db=null;songs=[makeExample()];
     const st=$('setStatus');st.classList.add('err');st.textContent='Safari is blocking storage for this page, so songs will not be kept after you close it. Turn off Private Browsing and reload.';
   }
+  $('sound').value=store.get('sound','all');
   renderList();loadGigIndex();
+  cur=Math.max(0,Math.min(songs.length-1,store.get('cur',0)|0));
+  if(store.get('view','set')==='show'&&songs.length)show('show');
 })();
+$('sound').onchange=()=>store.set('sound',$('sound').value);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&ctx&&ctx.state!=='running'){try{ctx.resume()}catch(e){}}});
+document.addEventListener('gesturestart',e=>e.preventDefault());
 </script>
 </html>
