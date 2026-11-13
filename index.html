@@ -92,6 +92,9 @@ input[type=range]{width:100%;accent-color:var(--tally)}
 .check input{width:22px;height:22px;accent-color:var(--tally)}
 /* editor */
 .field{display:flex;flex-direction:column;gap:6px}
+textarea{background:var(--panel);border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:12px;font:400 17px var(--body);width:100%;resize:vertical}
+.cue{font-size:22px;line-height:1.3;font-weight:700;color:var(--tally);border-left:4px solid var(--tally);padding:4px 0 4px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
+#shCueEdit{min-height:40px;font-size:14px;color:var(--dim);background:none;border-style:dashed}
 input[type=text],select{background:var(--panel);border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:12px;font:700 17px var(--body);width:100%}
 canvas{width:100%;display:block;border-radius:10px;background:var(--panel);border:1px solid var(--line);touch-action:manipulation}
 #wave{height:64px}#zoom{height:120px}
@@ -152,6 +155,12 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
   <section id="vShow" class="stage" hidden>
     <div class="pos"><span class="label" id="shPos">Song 1 of 1</span><span class="pill" id="shMeter">4/4</span></div>
     <div class="sname" id="shName">—</div>
+    <div class="cue" id="shCue" hidden></div>
+    <button class="btn" id="shCueEdit">✎ Add a note for this song</button>
+    <div class="field" id="shCueBox" hidden>
+      <textarea id="shCueText" rows="3" placeholder="e.g. Groove in after the intro · backbeat at verse 2"></textarea>
+      <div class="grid2"><button class="btn primary" id="shCueSave">Save note</button><button class="btn" id="shCueCancel">Cancel</button></div>
+    </div>
     <div class="bpmrow"><button class="btn adj" id="shMinus" aria-label="Minus 1 BPM">−1</button><div class="bpmbig"><span class="v" id="shBpm">0</span><span class="u">BPM</span></div><button class="btn adj" id="shPlus" aria-label="Plus 1 BPM">+1</button></div>
     <div class="lights" id="lights"></div>
     <div class="listen"><button class="btn" id="shListen">Listen to the band</button><div class="live" id="shLive">Mic off</div></div>
@@ -171,6 +180,7 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
       <span class="label">Groove</span><input type="range" id="volGroove" min="0" max="1.5" step="0.01" value="0.9" aria-label="Groove volume">
     </div>
     <div class="field"><label class="label" for="sound">Click sound</label>
+      <select id="clickLen"><option value="15">Click runs 15 seconds</option><option value="30">Click runs 30 seconds</option><option value="all">Click runs the whole song</option></select>
       <select id="sound"><option value="all">Every beat</option><option value="one">Beat 1 only</option><option value="off">Off · lights only</option></select></div>
     <label class="check"><input type="checkbox" id="overlay" checked> Play the click over the groove too</label>
   </section>
@@ -179,6 +189,7 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
   <section id="vEdit" class="stage" hidden>
     <div class="row"><button class="btn" id="edBack">◀ Back</button><span class="grow"></span><span class="pill ex" id="edEx" hidden>Example</span></div>
     <div class="field"><label class="label" for="edName">Song name</label><input type="text" id="edName" autocomplete="off"></div>
+    <div class="field"><label class="label" for="edCue">Note · shown big on the Show screen</label><textarea id="edCue" rows="3" placeholder="e.g. Groove in after the intro · backbeat at verse 2"></textarea></div>
     <div class="grid2" id="edSrc">
       <button class="btn primary" id="edRec">● Record</button>
       <label class="btn" style="text-align:center" for="edFile" id="edAttach">Add a recording for this song</label>
@@ -281,6 +292,7 @@ function blip(t,accent){
   g.gain.exponentialRampToValueAtTime(0.0008,t+0.055);
   o.connect(g);g.connect(clickGain);o.start(t);o.stop(t+0.07);
 }
+function clickStop(s,from){const v=$('clickLen').value;if(v==='all')return Infinity;const bd=barDur(s);return from+Math.max(1,Math.ceil(+v/bd))*bd}
 function startClick(t0,bpm,bpb,opt){
   Object.assign(eng,{running:true,bpm,bpb,next:t0,beat:0,beats:[],overlay:opt.overlay,grooveEnd:opt.grooveEnd||0,stopAt:opt.stopAt||Infinity,owner:opt.owner,t0});
   tick();clearInterval(eng.timer);eng.timer=setInterval(tick,25);
@@ -439,6 +451,7 @@ function renderShow(){
   cur=Math.min(cur,songs.length-1);const s=songs[cur];$('shGo').disabled=!s.bpm;$('shGo').classList.toggle('noclip',!s.clip);$('shClick').disabled=!s.bpm;
   $('shPos').textContent=`Song ${cur+1} of ${songs.length}`;$('shName').textContent=s.name;$('shBpm').textContent=fmtBpm(s.bpm);$('shMeter').textContent=s.bpb+' beats/bar';
   const n=songs[cur+1];$('nxName').textContent=n?n.name:'End of set';$('nxMeta').textContent=n?`${n.bpm?fmtBpm(n.bpm):'No'} BPM · ${n.bpb} beats/bar`:'This is the last song';
+  $('shCue').hidden=!s.cue;$('shCue').textContent=s.cue||'';$('shCueBox').hidden=true;$('shCueEdit').hidden=false;$('shCueEdit').textContent=s.cue?'✎ Edit note':'✎ Add a note for this song';
   $('shPrev').disabled=cur===0;$('shNext').disabled=!n;
   lastLit=-2;const lt=$('lights');lt.innerHTML='';for(let i=0;i<s.bpb;i++){const d=document.createElement('i');if(!i)d.className='one';lt.append(d)}
   renderShowState();
@@ -450,14 +463,17 @@ function setLights(k){if(k===lastLit)return;lastLit=k;[...$('lights').children].
 $('shGo').onclick=async()=>{
   if(eng.running&&eng.owner==='show'){stopAll();return}
   stopAll();const s=songs[cur];if(!s||!s.bpm)return;
-  if(!s.clip){const c=await live();startClick(c.currentTime+0.1,s.bpm,s.bpb,{owner:'show'});renderShowState('Click');wake();return}
+  if(!s.clip){const c=await live(),t=c.currentTime+0.1;startClick(t,s.bpm,s.bpb,{owner:'show',stopAt:clickStop(s,t)});renderShowState('Click');wake();return}
   const c=await live(),t0=c.currentTime+0.15,dur=grooveDur(s);
   playBuf(clipBuffer(s),t0,0,dur);
-  startClick(t0,s.bpm,s.bpb,{overlay:$('overlay').checked,grooveEnd:t0+dur,owner:'show'});
+  startClick(t0,s.bpm,s.bpb,{overlay:$('overlay').checked,grooveEnd:t0+dur,stopAt:clickStop(s,t0+dur),owner:'show'});
   renderShowState('Starting…');wake();
 };
-$('shClick').onclick=async()=>{stopAll();const s=songs[cur];if(!s||!s.bpm)return;const c=await live();startClick(c.currentTime+0.1,s.bpm,s.bpb,{owner:'show'});renderShowState('Click');wake()};
+$('shClick').onclick=async()=>{stopAll();const s=songs[cur];if(!s||!s.bpm)return;const c=await live(),t=c.currentTime+0.1;startClick(t,s.bpm,s.bpb,{owner:'show',stopAt:clickStop(s,t)});renderShowState('Click');wake()};
 $('shStop').onclick=stopAll;
+$('shCueEdit').onclick=()=>{const s=songs[cur];if(!s)return;$('shCueText').value=s.cue||'';$('shCueBox').hidden=false;$('shCueEdit').hidden=true;$('shCueText').focus()};
+$('shCueCancel').onclick=()=>{$('shCueBox').hidden=true;$('shCueEdit').hidden=false};
+$('shCueSave').onclick=async()=>{const s=songs[cur];if(!s)return;s.cue=$('shCueText').value.trim();try{if(db)await dbPut(s);toast('Note saved')}catch(e){toast('Could not save the note')}renderShow()};
 let showSave=null,showTaps=[];
 function setShowBpm(b){
   const s=songs[cur];if(!s||!isFinite(b))return;b=Math.max(30,Math.min(300,Math.round(b)));s.bpm=b;
@@ -484,7 +500,7 @@ function frame(){
     if(!last){setLights(-1);return}
     const lit=now-last.t<0.12?last.b%eng.bpb:-1;setLights(lit);
     const bar=Math.floor(last.b/eng.bpb)+1,s=songs[cur];
-    renderShowState(last.g?`<span class="g">Groove</span> · bar ${bar} of ${s.bars}`:`Click · bar ${bar-(eng.grooveEnd>eng.t0?s.bars:0)}`);
+    renderShowState(last.g?`<span class="g">Groove</span> · bar ${bar} of ${s.bars}`:`Click · bar ${bar-(eng.grooveEnd>eng.t0?s.bars:0)}`+(isFinite(eng.stopAt)?` of ${Math.round((eng.stopAt-Math.max(eng.grooveEnd,eng.t0))/(eng.bpb*60/eng.bpm))}`:''));
   }else if(eng.owner==='edit')drawZoom(now);
 }
 requestAnimationFrame(frame);
@@ -522,7 +538,7 @@ function snap(s,t,buf){
   while(v<0)v+=bd;while(v+grooveDur(s)>buf.length/buf.sampleRate&&v-bd>=0)v-=bd;return v;
 }
 function openEditorUI(){
-  const s=ed.song;$('edName').value=s.name;$('meter').value=String(s.bpb);$('bars').value=String(s.bars);$('edEx').hidden=!s.example;
+  const s=ed.song;$('edName').value=s.name;$('edCue').value=s.cue||'';$('meter').value=String(s.bpb);$('bars').value=String(s.bars);$('edEx').hidden=!s.example;
   delArm(false);show('edit');peaks=null;requestAnimationFrame(()=>{refreshEditor()});
 }
 function refreshEditor(){
@@ -562,6 +578,7 @@ $('beatFwd').onclick=()=>shift(60/ed.song.bpm);
 $('fineBack').onclick=()=>shift(-0.01);
 $('fineFwd').onclick=()=>shift(0.01);
 $('edName').oninput=()=>ed.song.name=$('edName').value;
+$('edCue').oninput=()=>ed.song.cue=$('edCue').value.trim();
 $('edCheck').onclick=async()=>{
   if(eng.running&&eng.owner==='edit'){stopAll();return}
   stopAll();const s=ed.song,c=await live(),t0=c.currentTime+0.15,dur=grooveDur(s);
@@ -659,7 +676,7 @@ async function loadGig(g){
     const base='gigs/'+g.id+'/',sl=await (await fetch(base+'setlist.json',{cache:'no-store'})).json(),out=[];
     for(const [i,x] of sl.songs.entries()){
       st.textContent=`Loading ${i+1} of ${sl.songs.length}: ${x.name}`;
-      const s={id:'g'+Date.now().toString(36)+'-'+i,name:x.name,bpm:x.bpm||null,bpb:x.bpb||4,bars:x.bars||4,gridT:0,startT:0,order:i,rev:1,gig:g.id,note:x.note||'',fileName:'',audio:null,clip:null};
+      const s={id:'g'+Date.now().toString(36)+'-'+i,name:x.name,bpm:x.bpm||null,bpb:x.bpb||4,bars:x.bars||4,gridT:0,startT:0,order:i,rev:1,gig:g.id,note:x.note||'',cue:x.cue||'',fileName:'',audio:null,clip:null};
       if(x.clip){
         try{
           const ab=await (await fetch(base+x.clip)).arrayBuffer(),buf=await decodeAudio(ab),d=detect(buf,0,buf.duration,s.bpb);
@@ -675,9 +692,9 @@ async function loadGig(g){
 }
 
 /* ---------- backup / restore / copy ---------- */
-const settingsOf=s=>({name:s.name,bpm:s.bpm,bpb:s.bpb,bars:s.bars,gridT:s.gridT,startT:s.startT,order:s.order,note:s.note||''});
+const settingsOf=s=>({name:s.name,bpm:s.bpm,bpb:s.bpb,bars:s.bars,gridT:s.gridT,startT:s.startT,order:s.order,note:s.note||'',cue:s.cue||''});
 $('copyList').onclick=()=>{
-  const txt=songs.map((s,i)=>`${i+1}. ${s.name} — ${s.bpm?fmtBpm(s.bpm)+' BPM':'BPM not set'} · ${s.bpb}/bar`).join('\n');
+  const txt=songs.map((s,i)=>`${i+1}. ${s.name} — ${s.bpm?fmtBpm(s.bpm)+' BPM':'BPM not set'} · ${s.bpb}/bar${s.cue?' · NOTE: '+s.cue.replace(/\n/g,' / '):''}`).join('\n');
   navigator.clipboard.writeText(txt).then(()=>toast('BPM list copied'),()=>toast('Copy failed'));
 };
 $('saveBackup').onclick=()=>{
@@ -709,19 +726,25 @@ async function micStart(mode){
   micStop();
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('nomic');
   try{if(navigator.audioSession)navigator.audioSession.type='play-and-record'}catch(e){}
-  const c=await live();
   const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}});
-  const src=c.createMediaStreamSource(stream),proc=c.createScriptProcessor(4096,1,1),sink=c.createGain();sink.gain.value=0;
+  Object.assign(mic,{mode,stream,chunks:[],len:0,pos:0,fill:0,t0:performance.now(),peak:0,n:0,est:[],frames:0,rewired:0});
+  await micWire();
+  mic.timer=setInterval(micTick,250);
+}
+async function micWire(){
+  // (re)build the graph; iOS can leave the context stuck after the mic switches the audio session
+  try{mic.src&&mic.src.disconnect();mic.proc&&mic.proc.disconnect();mic.sink&&mic.sink.disconnect()}catch(e){}
+  const c=await live(),src=c.createMediaStreamSource(mic.stream),proc=c.createScriptProcessor(4096,1,1),sink=c.createGain();sink.gain.value=0;
   const sr=c.sampleRate,RING=Math.round(sr*12);
-  Object.assign(mic,{mode,stream,src,proc,sink,chunks:[],len:0,ring:new Float32Array(RING),pos:0,fill:0,sr,t0:performance.now(),peak:0,n:0});
+  if(!mic.ring||mic.sr!==sr){mic.ring=new Float32Array(RING);mic.pos=0;mic.fill=0}
+  Object.assign(mic,{src,proc,sink,sr,lastFrames:mic.frames,wiredAt:performance.now()});
   proc.onaudioprocess=e=>{
-    const x=e.inputBuffer.getChannelData(0);
+    if(!mic.mode)return;const x=e.inputBuffer.getChannelData(0),R=mic.ring.length;mic.frames++;
     if(mic.mode==='rec'){mic.chunks.push(new Float32Array(x));mic.len+=x.length}
-    let p=0;for(let i=0;i<x.length;i++){const v=x[i];mic.ring[mic.pos]=v;mic.pos=(mic.pos+1)%RING;const a=v<0?-v:v;if(a>p)p=a}
-    mic.fill=Math.min(RING,mic.fill+x.length);mic.peak=Math.max(p,mic.peak*0.85);
+    let p=0;for(let i=0;i<x.length;i++){const v=x[i];mic.ring[mic.pos]=v;mic.pos=(mic.pos+1)%R;const a=v<0?-v:v;if(a>p)p=a}
+    mic.fill=Math.min(R,mic.fill+x.length);mic.peak=Math.max(p,mic.peak*0.85);
   };
   src.connect(proc);proc.connect(sink);sink.connect(c.destination);
-  mic.timer=setInterval(micTick,250);
 }
 function micStop(){
   if(!mic.mode)return;clearInterval(mic.timer);
@@ -739,15 +762,23 @@ function liveBpm(target){
 }
 function micTick(){
   mic.n++;const secs=(performance.now()-mic.t0)/1000;
+  // watchdog: no audio arriving for 1.5 s -> rebuild (max 3 tries)
+  if(mic.frames!==mic.lastFrames){mic.lastFrames=mic.frames;mic.wiredAt=performance.now()}
+  else if(performance.now()-mic.wiredAt>1500&&mic.rewired<3){
+    mic.rewired++;stopAll();try{ctx&&ctx.close()}catch(e){}ctx=null;clipCache.clear();micWire().catch(()=>{});return;
+  }
   if(mic.mode==='rec'){
     $('recTime').textContent=`${Math.floor(secs/60)}:${String(Math.floor(secs%60)).padStart(2,'0')}`;
     const lv=$('recLevel');lv.style.width=Math.min(100,mic.peak*100)+'%';lv.classList.toggle('hot',mic.peak>0.97);
     if(mic.n%8===0){const b=liveBpm(null);if(b)$('recBpm').textContent=`Live estimate: about ${Math.round(b)} BPM`+(mic.peak>0.97?' · too loud, move the phone away':'')}
     if(secs>=240)finishRec();
   }else if(mic.mode==='listen'&&mic.n%8===0){
-    const s=songs[cur],t=s&&s.bpm,b=liveBpm(t),l=$('shLive');
-    if(!b){l.className='live';l.textContent='Listening…';return}
-    const r=Math.round(b);
+    const s=songs[cur],t=s&&s.bpm,l=$('shLive');
+    if(!mic.frames){l.className='live bad';l.textContent=mic.rewired>=3?'Mic not working · tap Stop, then Listen':'Starting mic…';return}
+    const b0=liveBpm(t);
+    if(!b0){l.className='live';l.textContent=`Listening… ${Math.max(0,6-Math.floor(mic.fill/mic.sr))} s`;return}
+    if(mic.est.length&&t&&mic.estFor!==t)mic.est=[];mic.estFor=t;mic.est.push(b0);if(mic.est.length>3)mic.est.shift();
+    const srt=[...mic.est].sort((x,y)=>x-y),b=srt[Math.floor(srt.length/2)],r=Math.round(b);
     if(!t){l.className='live';l.textContent=`Band ≈ ${r} BPM`;return}
     const d=r-Math.round(t);l.className='live '+(Math.abs(d)<=2?'ok':Math.abs(d)<=5?'off':'bad');
     l.textContent=`Band ≈ ${r} · ${d===0?'on tempo':d>0?'+'+d+' fast':d+' slow'}`;
@@ -807,6 +838,7 @@ $('shListen').onclick=async()=>{
   if(store.get('view','set')==='show'&&songs.length)show('show');
 })();
 $('sound').onchange=()=>store.set('sound',$('sound').value);
+$('clickLen').value=store.get('clickLen','15');$('clickLen').onchange=()=>store.set('clickLen',$('clickLen').value);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&ctx&&ctx.state!=='running'){try{ctx.resume()}catch(e){}}});
 document.addEventListener('gesturestart',e=>e.preventDefault());
 </script>
