@@ -97,7 +97,7 @@ label.btn{display:flex;align-items:center;justify-content:center;box-sizing:bord
 .rectime{font-family:var(--display);font-weight:800;font-size:48px;line-height:1;color:var(--down);font-variant-numeric:tabular-nums}
 .meter{height:12px;background:var(--line);border-radius:6px;overflow:hidden}.meter i{display:block;height:100%;width:0;background:var(--ok)}.meter i.hot{background:var(--down)}
 .listen{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.listen .btn.on{background:var(--down);border-color:var(--down);color:#fff}
+#shListen.on{background:var(--down);border-color:var(--down);color:#fff}
 .live{font-family:var(--display);font-weight:800;font-size:30px;line-height:1.1;text-transform:uppercase;font-variant-numeric:tabular-nums;color:var(--dim);text-align:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px}
 .live.ok{color:var(--ok);border-color:var(--ok)}.live.off{color:var(--tally);border-color:var(--tally)}.live.bad{color:var(--down);border-color:var(--down)}
 .go.noclip{background:var(--panel);border:3px dashed var(--tally);color:var(--tally)}
@@ -146,9 +146,7 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
     </div>
     <nav class="tabs" id="tabs">
       <button id="tabGigs" aria-pressed="false">Gigs</button>
-      <button id="tabSet" aria-pressed="true">Setlist</button>
       <button id="tabShow" aria-pressed="false">Show</button>
-      <button id="tabRecs" aria-pressed="false">Recs</button>
     </nav>
   </header>
 
@@ -181,10 +179,12 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
   <!-- SETLIST -->
   <section id="vSet" class="stage">
     <div class="gighead"><button class="btn" id="toGigs">◀ Gigs</button><div><span class="label" id="ghDate"></span><b id="ghName">—</b></div></div>
+    <nav class="tabs"><button id="segSongs" aria-pressed="true">Songs</button><button id="segRecs" aria-pressed="false">Recordings</button></nav>
+    <div class="stage" id="paneSongs">
     <div class="list" id="list"></div>
     <div class="grid2">
       <label class="btn primary" style="text-align:center" for="file">+ Add from a file</label>
-      <button class="btn primary" id="newRec">● Record a new song</button>
+      <button class="btn primary" id="newRec">● New song from the mic</button>
     </div>
     <button class="btn" id="copyFrom">+ Copy songs from another gig</button>
     <div class="panel" id="pickPanel" hidden>
@@ -206,6 +206,41 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
         <li>Tap <b>Add from a file</b> above and pick that file.</li>
         <li>Check the BPM, tap the waveform where the groove you want starts, press <b>Check</b>, then <b>Save</b>.</li>
       </ol>
+    </div>
+    </div>
+    <div class="stage" id="paneRecs" hidden>
+    <div class="recpanel" id="recLive" hidden>
+      <span class="label" id="recLiveName">Recording</span>
+      <div class="rectime" id="recLiveTime">0:00</div>
+      <div class="muted" id="recLiveInfo"></div>
+      <div class="grid2"><button class="btn primary" id="recGoShow">Go to Show ▶</button><button class="btn armed" id="recEnd">■ Stop recording</button></div>
+    </div>
+    <div class="panel" id="recNew">
+      <div class="field"><label class="label" for="recKind">New recording</label>
+        <select id="recKind"><option>Practice</option><option>Gig night</option><option>Soundcheck</option></select></div>
+      <button class="btn primary" id="recStartBtn">● Start recording</button>
+    </div>
+    <div class="panel" id="player" hidden>
+      <div><span class="label" id="plMeta"></span><div class="sname" style="font-size:30px" id="plTitle"></div></div>
+      <audio id="plAudio" controls preload="metadata"></audio>
+      <span class="label">Songs · tap one to jump to it</span>
+      <div id="plMarks" class="field" style="gap:0"></div>
+      <div class="grid2"><button class="btn" id="plExport">Save to Files</button><button class="btn" id="plReport">Copy tempo report</button></div>
+      <div class="grid2"><button class="btn danger" id="plDel">Delete</button><button class="btn" id="plClose">Close</button></div>
+    </div>
+    <div class="field" id="recList"></div>
+    <div class="field"><label class="label" for="recQ">Recording quality</label>
+      <select id="recQ"><option value="32000">Small · about 15 MB per hour</option><option value="64000" selected>Good · about 30 MB per hour</option><option value="128000">High · about 60 MB per hour</option></select></div>
+    <div class="muted" id="recStorage"></div>
+    <div class="help">
+      <b>Recording a practice or the gig</b>
+      <ol>
+        <li>Tap <b>● Start recording</b> here, then go to <b>Show</b> and play as usual. The mic also measures the band's tempo.</li>
+        <li>Each time you press <b>Play</b> or <b>Click only</b> on Show, a song marker is added.</li>
+        <li>Keep the screen on and Stageclick open. Locking the phone can stop the recording.</li>
+        <li>Listen back here, then use <b>Save to Files</b> to keep it and <b>Delete</b> to free space.</li>
+      </ol>
+    </div>
     </div>
   </section>
 
@@ -229,10 +264,7 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
     <div class="state" id="shState">Ready</div>
     <button class="btn primary go" id="shGo">Play groove → click</button>
     <div class="live" id="shLive">Mic off</div>
-    <div class="listen">
-      <button class="btn" id="shListen">Listen to the band</button>
-      <button class="btn" id="shRec">● Record the set</button>
-    </div>
+    <button class="btn" id="shListen">Listen to the band</button>
     <div class="nav">
       <button class="btn" id="shPrev">◀ Prev</button>
       <button class="btn" id="shNext">Next ▶</button>
@@ -253,30 +285,6 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
     <label class="check"><input type="checkbox" id="overlay" checked> Play the click over the groove too</label>
   </section>
 
-  <!-- RECORDINGS -->
-  <section id="vRecs" class="stage" hidden>
-    <div class="panel" id="player" hidden>
-      <div><span class="label" id="plMeta"></span><div class="sname" style="font-size:30px" id="plTitle"></div></div>
-      <audio id="plAudio" controls preload="metadata"></audio>
-      <span class="label">Songs · tap one to jump to it</span>
-      <div id="plMarks" class="field" style="gap:0"></div>
-      <div class="grid2"><button class="btn" id="plExport">Save to Files</button><button class="btn" id="plReport">Copy tempo report</button></div>
-      <div class="grid2"><button class="btn danger" id="plDel">Delete</button><button class="btn" id="plClose">Close</button></div>
-    </div>
-    <div class="field" id="recList"></div>
-    <div class="field"><label class="label" for="recQ">Recording quality</label>
-      <select id="recQ"><option value="32000">Small · about 15 MB per hour</option><option value="64000" selected>Good · about 30 MB per hour</option><option value="128000">High · about 60 MB per hour</option></select></div>
-    <div class="muted" id="recStorage"></div>
-    <div class="help">
-      <b>Recording a set</b>
-      <ol>
-        <li>On <b>Show</b>, tap <b>● Record the set</b>. The mic also measures the band's tempo while it records.</li>
-        <li>Each time you press <b>Play</b> or <b>Click only</b>, a song marker is added.</li>
-        <li>Keep the screen on and Stageclick open. Locking the phone can stop the recording.</li>
-        <li>Listen back here, then use <b>Save to Files</b> to keep it and <b>Delete</b> to free space.</li>
-      </ol>
-    </div>
-  </section>
 
   <!-- EDITOR -->
   <section id="vEdit" class="stage" hidden>
@@ -545,7 +553,7 @@ const gigSort=()=>gigs.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.cr
 function statsOf(list){return{n:list.length,need:list.filter(s=>!s.bpm).length,cf:list.filter(s=>s.bpm&&s.confirmed).length}}
 async function touchGig(){const g=curGig();if(!g)return;Object.assign(g,statsOf(songs));try{if(db)await gigPut(g)}catch(e){}}
 async function openGig(id,toView){
-  stopAll();gigId=id;store.set('gig',id);
+  stopAll();if(gigId!==id){$('player').hidden=true;try{$('plAudio').pause()}catch(e){}plRec=null}gigId=id;store.set('gig',id);
   songs=db?(await dbSongsOf(id)||[]).sort((a,b)=>a.order-b.order):songs.filter(s=>s.gigId===id);
   cur=Math.max(0,Math.min(songs.length-1,(store.get('curBy',{})[id])|0));
   show(toView||'set');
@@ -569,8 +577,8 @@ function renderGigs(){
     const [ren,dup,del]=el.querySelectorAll('.ic');
     ren.onclick=()=>gigFormOpen('edit',g);
     dup.onclick=()=>gigFormOpen('new',null,g.id);
-    del.onclick=()=>arm(del,'Delete gig?',3500,async()=>{
-      try{await delByIndex('songs','gig',g.id);await gigDel(g.id)}catch(e){toast('Could not delete');return}
+    del.onclick=()=>arm(del,'Delete gig + its recordings?',3500,async()=>{
+      try{if(setRec.meta&&setRec.meta.gigId===g.id)setRecStop();await delByIndex('songs','gig',g.id);for(const r of (await recAll()||[]).filter(r=>r.gigId===g.id)){await delByIndex('chunks','rec',r.id);await req('recs','readwrite',x=>x.delete(r.id))}await gigDel(g.id)}catch(e){toast('Could not delete');return}
       gigs=gigs.filter(x=>x.id!==g.id);if(gigId===g.id){gigId=null;songs=[];store.set('gig',null)}
       toast('Gig deleted');renderGigs();
     });
@@ -606,23 +614,24 @@ function show(v){
   if(v!=='edit'&&mic.mode==='rec')micStop();
   if(v==='set'&&!curGig())v='gigs';
   view=v;if(v!=='edit')store.set('view',v);
-  for(const [k,id] of [['gigs','vGigs'],['set','vSet'],['show','vShow'],['edit','vEdit'],['recs','vRecs']])$(id).hidden=v!==k;
-  $('tabGigs').setAttribute('aria-pressed',v==='gigs');$('tabSet').setAttribute('aria-pressed',v==='set'||v==='edit');
-  $('tabShow').setAttribute('aria-pressed',v==='show');$('tabRecs').setAttribute('aria-pressed',v==='recs');
+  if(v==='recs'){v='set';gigPane='recs'}
+  for(const [k,id] of [['gigs','vGigs'],['set','vSet'],['show','vShow'],['edit','vEdit']])$(id).hidden=v!==k;
+  $('tabGigs').setAttribute('aria-pressed',v!=='show');$('tabShow').setAttribute('aria-pressed',v==='show');
   if(v==='show'){renderShow();wake()}
-  if(v==='set')renderList();
+  if(v==='set'){renderPane();renderList()}
   if(v==='gigs'){gigFormClose();renderGigs()}
-  if(v==='recs')renderRecs();
   window.scrollTo(0,0);
 }
 $('tabGigs').onclick=()=>{if(view==='edit')stopAll();show('gigs')};
-$('tabSet').onclick=()=>{if(view==='edit')stopAll();show('set')};
 $('tabShow').onclick=()=>{if(view==='edit')stopAll();show('show')};
-$('tabRecs').onclick=()=>{if(view==='edit')stopAll();show('recs')};
+let gigPane=store.get('gigPane','songs');
+function renderPane(){$('segSongs').setAttribute('aria-pressed',gigPane==='songs');$('segRecs').setAttribute('aria-pressed',gigPane==='recs');$('paneSongs').hidden=gigPane!=='songs';$('paneRecs').hidden=gigPane!=='recs';if(gigPane==='recs'){renderRecUI();renderRecs()}}
+$('segSongs').onclick=()=>{gigPane='songs';store.set('gigPane',gigPane);renderPane()};
+$('segRecs').onclick=()=>{gigPane='recs';store.set('gigPane',gigPane);renderPane()};
 $('toGigs').onclick=()=>show('gigs');
 
 function renderList(){
-  const g=curGig();$('ghName').textContent=g?g.name:'—';$('ghDate').textContent=g?fmtDate(g.date)+' · setlist':'';
+  const g=curGig();$('ghName').textContent=g?g.name:'—';$('ghDate').textContent=g?fmtDate(g.date):'';
   $('pickPanel').hidden=true;$('copyFrom').hidden=gigs.length<2;
   const L=$('list');L.innerHTML='';
   if(!songs.length){L.innerHTML='<div class="empty">No songs in this gig yet. Add one from a recording, record one, or copy songs from another gig.</div>';return}
@@ -733,7 +742,7 @@ $('overlay').onchange=()=>{store.set('overlay',$('overlay').checked);eng.overlay
 let badgeT=0;
 function frame(){
   requestAnimationFrame(frame);
-  if(setRec.mr&&performance.now()-badgeT>500){badgeT=performance.now();const t=fmtHMS((performance.now()-setRec.t0)/1000);$('recBadge').textContent='● REC '+t;$('shRec').textContent='■ Stop recording · '+t}
+  if(setRec.mr&&performance.now()-badgeT>500){badgeT=performance.now();const t=fmtHMS((performance.now()-setRec.t0)/1000);$('recBadge').textContent='● REC '+t;$('recLiveTime').textContent=t;if(setRec.meta)$('recLiveInfo').textContent=`${setRec.meta.marks.length} song${setRec.meta.marks.length===1?'':'s'} marked · ${fmtMB(setRec.meta.bytes)}`}
   if(!ctx||!eng.running)return;
   const now=ctx.currentTime;
   if(eng.endAt&&now>=eng.endAt){stopAll();return}
@@ -1110,7 +1119,7 @@ async function setRecStart(){
   if(!(await listenOn()))return;
   let mr;try{mr=new MediaRecorder(mic.stream,Object.assign({audioBitsPerSecond:+$('recQ').value},mime?{mimeType:mime}:{}))}catch(e){try{mr=new MediaRecorder(mic.stream)}catch(e2){toast('Recording could not start');return}}
   const g=curGig();
-  const meta={id:uid('rec'),gigId,gigName:g?g.name:'No gig',gigDate:g?g.date:today(),started:new Date().toISOString(),dur:0,bytes:0,mime:mr.mimeType||mime||'audio/mp4',state:'rec',marks:[],log:[]};
+  const meta={id:uid('rec'),label:$('recKind').value||'Practice',gigId,gigName:g?g.name:'No gig',gigDate:g?g.date:today(),started:new Date().toISOString(),dur:0,bytes:0,mime:mr.mimeType||mime||'audio/mp4',state:'rec',marks:[],log:[]};
   Object.assign(setRec,{mr,meta,t0:performance.now(),i:0});
   mr.ondataavailable=async e=>{
     if(!e.data||!e.data.size)return;const i=setRec.i++,m=meta;
@@ -1121,31 +1130,34 @@ async function setRecStart(){
   mr.onstop=async()=>{meta.state='done';meta.dur=(performance.now()-setRec.t0)/1000;try{await recPut(meta)}catch(e){}
     if(setRec.meta===meta)Object.assign(setRec,{mr:null,meta:null});renderRecUI();if(view==='recs')renderRecs()};
   try{mr.start(10000)}catch(e){toast('Recording could not start');Object.assign(setRec,{mr:null,meta:null});return}
-  await recPut(meta);renderRecUI();wake();toast('Recording the set');
+  await recPut(meta);renderRecUI();wake();toast('Recording · now go to Show and play');
   if(eng.running&&eng.owner==='show'&&songs[cur])recMark(songs[cur]);
 }
-function setRecStop(){const mr=setRec.mr;if(!mr)return;try{mr.requestData()}catch(e){}try{mr.stop()}catch(e){}setRec.mr=null;renderRecUI();toast('Recording saved · see Recordings')}
+function setRecStop(){const mr=setRec.mr;if(!mr)return;try{mr.requestData()}catch(e){}try{mr.stop()}catch(e){}setRec.mr=null;renderRecUI();toast('Recording saved');if(view==='set'&&gigPane==='recs')renderRecs()}
 function recMark(s){if(!setRec.mr||!setRec.meta||!s)return;setRec.meta.marks.push({t:+((performance.now()-setRec.t0)/1000).toFixed(1),name:s.name,bpm:s.bpm||null,n:cur})}
-function renderRecUI(){const on=!!setRec.mr;$('recBadge').hidden=!on;$('shRec').classList.toggle('armed',on);if(!on)$('shRec').textContent='● Record the set'}
-$('shRec').onclick=()=>{if(setRec.mr)setRecStop();else setRecStart()};
-$('recBadge').onclick=()=>show('show');
+function renderRecUI(){const on=!!setRec.mr,m=setRec.meta;$('recBadge').hidden=!on;$('recLive').hidden=!on;$('recNew').hidden=on;if(on&&m)$('recLiveName').textContent=`Recording · ${m.label} · ${m.gigName}`;
+  if(!on){const g=curGig();$('recKind').value=g&&g.date===today()?'Gig night':'Practice'}}
+$('recStartBtn').onclick=()=>setRecStart();
+$('recEnd').onclick=()=>setRecStop();
+$('recGoShow').onclick=()=>show('show');
+$('recBadge').onclick=async()=>{const m=setRec.meta;if(m&&m.gigId!==gigId)await openGig(m.gigId);gigPane='recs';show('set')};
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&setRec.mr){try{setRec.mr.requestData()}catch(e){}}});
 $('recQ').value=store.get('recQ','64000');$('recQ').onchange=()=>store.set('recQ',$('recQ').value);
 
 /* ---------- recordings view ---------- */
 let recs=[],plRec=null,plUrl=null;
 async function renderRecs(){
-  const L=$('recList');recs=db?(await recAll()||[]).sort((a,b)=>b.started.localeCompare(a.started)):[];L.innerHTML='';
-  if(!recs.length)L.innerHTML='<div class="empty">No recordings yet. On Show, tap <b>● Record the set</b>.</div>';
+  const L=$('recList');recs=db?(await recAll()||[]).filter(r=>r.gigId===gigId).sort((a,b)=>b.started.localeCompare(a.started)):[];L.innerHTML='';
+  if(!recs.length)L.innerHTML='<div class="empty">No recordings for this gig yet. Record each practice here so you can listen back.</div>';
   for(const r of recs){
     const el=document.createElement('div');el.className='gcard'+(plRec&&plRec.id===r.id?' curr':'');
     const when=new Date(r.started);
-    el.innerHTML=`<button class="main"><span class="label">${esc(when.toLocaleDateString(undefined,{day:'numeric',month:'short'}))} ${esc(when.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}))} · ${fmtHMS(r.dur)} · ${fmtMB(r.bytes)}${r.state==='rec'&&setRec.meta&&setRec.meta.id===r.id?' · <span style="color:var(--down)">recording</span>':r.state!=='done'?' · cut short':''}</span><b></b><span class="muted">${r.marks.length} song${r.marks.length===1?'':'s'} marked</span></button>`;
-    el.querySelector('b').textContent=r.gigName;
+    el.innerHTML=`<button class="main"><span class="label">${esc(when.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}))} · ${fmtHMS(r.dur)} · ${fmtMB(r.bytes)}${r.state==='rec'&&setRec.meta&&setRec.meta.id===r.id?' · <span style="color:var(--down)">recording</span>':r.state!=='done'?' · cut short':''}</span><b></b><span class="muted">${r.marks.length} song${r.marks.length===1?'':'s'} marked</span></button>`;
+    el.querySelector('b').textContent=(r.label||'Recording')+' · '+when.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
     el.querySelector('.main').onclick=()=>openRec(r);
     L.append(el);
   }
-  const tot=recs.reduce((a,r)=>a+r.bytes,0);$('recStorage').textContent=recs.length?`Recordings use ${fmtMB(tot)}.`:'';
+  const tot=recs.reduce((a,r)=>a+r.bytes,0);$('recStorage').textContent=recs.length?`This gig's recordings use ${fmtMB(tot)}. `:'';
   const e=document.createElement('span');$('recStorage').append(e);storageLine(e);
 }
 function songStats(r){
@@ -1156,8 +1168,8 @@ function songStats(r){
     return{...m,end,cnt:xs.length,med,lo:xs.length?xs[Math.floor(xs.length*0.1)]:null,hi:xs.length?xs[Math.floor(xs.length*0.9)]:null}});
 }
 async function openRec(r){
-  if(setRec.meta&&setRec.meta.id===r.id){toast('Still recording · stop it on Show first');return}
-  $('player').hidden=false;$('plTitle').textContent=r.gigName;$('plMeta').textContent=`${new Date(r.started).toLocaleString()} · ${fmtHMS(r.dur)} · ${fmtMB(r.bytes)}`;
+  if(setRec.meta&&setRec.meta.id===r.id){toast('Still recording · stop it first');return}
+  $('player').hidden=false;$('plTitle').textContent=(r.label||'Recording')+' · '+new Date(r.started).toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});$('plMeta').textContent=`${new Date(r.started).toLocaleString()} · ${fmtHMS(r.dur)} · ${fmtMB(r.bytes)}`;
   plRec=r;if(plUrl)URL.revokeObjectURL(plUrl);
   const ch=(await chunksOf(r.id)||[]).sort((a,b)=>a.i-b.i);plUrl=URL.createObjectURL(new Blob(ch.map(c=>c.ab),{type:r.mime}));
   const A=$('plAudio');A.src=plUrl;
@@ -1238,7 +1250,7 @@ async function migrate(){
   }
   loadGigIndex();
   cur=Math.max(0,Math.min(songs.length-1,(store.get('curBy',{})[gigId])|0));
-  const sv=store.get('view','set');show(sv==='show'&&songs.length?'show':sv==='recs'?'recs':curGig()?'set':'gigs');
+  const sv=store.get('view','set');show(sv==='show'&&songs.length?'show':curGig()?'set':'gigs');
 })();
 $('sound').onchange=()=>store.set('sound',$('sound').value);
 $('clickLen').value=store.get('clickLen','15');$('clickLen').onchange=()=>store.set('clickLen',$('clickLen').value);
