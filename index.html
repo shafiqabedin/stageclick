@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <style>
-/* Layout: one narrow column, stage-dark, thumb-sized controls; setlist ↔ show ↔ editor views */
+/* Layout: one narrow column, stage-dark, thumb-sized controls; gigs ↔ setlist ↔ show ↔ editor ↔ recordings */
 :root{
   --bg:#0e0f12; --panel:#181a1f; --line:#2a2d34; --fg:#eceae4; --dim:#8e919a;
   --tally:#ffb000; --down:#ff4d3d; --ok:#5bd38a;
@@ -21,26 +21,40 @@ html,body{background:var(--bg);color:var(--fg)}
 button{-webkit-user-select:none;user-select:none}
 body{font-family:var(--body);font-size:16px;line-height:1.45;-webkit-tap-highlight-color:transparent}
 .wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 40px;display:flex;flex-direction:column;gap:16px}
-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+header{display:flex;flex-direction:column;gap:10px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .brand{font-family:var(--display);font-weight:800;font-size:28px;letter-spacing:.02em;text-transform:uppercase}
 .brand span{color:var(--tally)}
 .tabs{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px}
-.tabs button{border:0;background:none;color:var(--dim);font:700 15px var(--body);padding:8px 14px;border-radius:7px}
+.tabs button{flex:1;border:0;background:none;color:var(--dim);font:700 15px var(--body);padding:9px 4px;border-radius:7px}
 .tabs button[aria-pressed="true"]{background:var(--line);color:var(--fg)}
+.recbadge{border:0;background:var(--down);color:#fff;font:700 14px var(--body);border-radius:99px;padding:6px 12px;font-variant-numeric:tabular-nums}
 button{font-family:var(--body);cursor:pointer;color:var(--fg)}
 button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--tally);outline-offset:2px}
 .btn{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-weight:700;font-size:16px;min-height:48px}
 .btn:active{transform:scale(.98)}
+label.btn{display:flex;align-items:center;justify-content:center;box-sizing:border-box}
 .btn:disabled{opacity:.35}
 .btn.primary{background:var(--tally);border-color:var(--tally);color:#1a1200}
 .btn.danger{color:var(--down)}
 .btn.armed{background:var(--down);border-color:var(--down);color:#fff}
+.btn.ok{border-color:var(--ok);color:var(--ok)}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .row>.grow{flex:1 1 0;min-width:0}
 .label{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);font-weight:700}
 .muted{color:var(--dim);font-size:14px}
 .pill{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;border:1px solid var(--line);border-radius:99px;padding:2px 8px;color:var(--dim)}
 .pill.ex{color:var(--tally);border-color:color-mix(in srgb,var(--tally) 45%,transparent)}
+.pill.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,transparent)}
+.panel{display:flex;flex-direction:column;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+/* gigs */
+.gcard{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 10px 10px 14px}
+.gcard.curr{border-color:var(--tally)}
+.gcard .main{background:none;border:0;text-align:left;padding:4px 0;min-width:0}
+.gcard b{display:block;font-family:var(--display);font-size:24px;line-height:1.1;text-transform:uppercase;overflow-wrap:anywhere}
+.gcard .tools{display:flex;gap:4px}
+.gighead{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center}
+.gighead b{display:block;font-family:var(--display);font-size:26px;line-height:1.05;text-transform:uppercase;overflow-wrap:anywhere}
 /* setlist */
 .list{display:flex;flex-direction:column;border-top:1px solid var(--line)}
 .song{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;border-bottom:1px solid var(--line);padding:10px 0}
@@ -48,9 +62,13 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .song .main{min-width:0;background:none;border:0;text-align:left;padding:4px 0}
 .song .t{font-weight:700;font-size:18px;overflow-wrap:anywhere}
 .song .m{color:var(--dim);font-size:14px;font-variant-numeric:tabular-nums}
+.song .m .need{color:var(--tally)}.song .m .cf{color:var(--ok)}
 .song .tools{display:flex;gap:4px}
-.ic{width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--panel);font-size:16px;font-weight:700}
+.ic{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--panel);font-size:16px;font-weight:700}
 .ic:disabled{opacity:.3}
+.ic.armed{background:var(--down);border-color:var(--down);color:#fff;width:auto;padding:0 10px;font-size:13px}
+.pick{display:flex;flex-direction:column;gap:2px;max-height:50vh;overflow:auto}
+.pick .label{margin-top:8px}
 .empty{border:1px dashed var(--line);border-radius:12px;padding:20px;color:var(--dim)}
 .help{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:14px;color:var(--dim)}
 .help b{color:var(--fg)}
@@ -63,22 +81,25 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .bpmbig .v{font-family:var(--display);font-weight:800;font-size:clamp(56px,17vw,80px);line-height:.85;color:var(--tally);font-variant-numeric:tabular-nums}
 .bpmbig .u{font-family:var(--display);font-weight:600;font-size:24px;color:var(--dim)}
 .bpmrow{display:grid;grid-template-columns:72px 1fr 72px;gap:8px;align-items:center}
-.bpmrow .bpmbig{justify-content:center}
+.bpmrow .bpmbig{justify-content:center;flex-direction:column;align-items:center;gap:6px}
 .adj{min-height:72px;font-family:var(--display);font-weight:800;font-size:28px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.grid3 .btn{padding:10px 6px;font-size:15px}
 .lights{display:flex;gap:8px}
 .lights i{flex:1;height:72px;border-radius:12px;background:var(--panel);border:1px solid var(--line);transition:background .06s}
 .lights i.on{background:var(--tally);border-color:var(--tally)}
 .lights i.on.one{background:var(--down);border-color:var(--down)}
 .state{font-family:var(--display);font-weight:600;font-size:22px;letter-spacing:.04em;text-transform:uppercase;min-height:28px;font-variant-numeric:tabular-nums}
 .state .g{color:var(--tally)}
+.state .ci{font-weight:800;font-size:40px;line-height:1;color:var(--down)}
 .go{font-family:var(--display);font-weight:800;font-size:34px;letter-spacing:.04em;text-transform:uppercase;min-height:96px;border-radius:14px}
 .recpanel{display:flex;flex-direction:column;gap:10px;border:2px solid var(--down);border-radius:12px;padding:14px}
 .rectime{font-family:var(--display);font-weight:800;font-size:48px;line-height:1;color:var(--down);font-variant-numeric:tabular-nums}
 .meter{height:12px;background:var(--line);border-radius:6px;overflow:hidden}.meter i{display:block;height:100%;width:0;background:var(--ok)}.meter i.hot{background:var(--down)}
-.listen{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center}
+.listen{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .listen .btn.on{background:var(--down);border-color:var(--down);color:#fff}
-.live{font-family:var(--display);font-weight:800;font-size:24px;text-transform:uppercase;font-variant-numeric:tabular-nums;color:var(--dim)}
-.live.ok{color:var(--ok)}.live.off{color:var(--tally)}.live.bad{color:var(--down)}
+.live{font-family:var(--display);font-weight:800;font-size:30px;line-height:1.1;text-transform:uppercase;font-variant-numeric:tabular-nums;color:var(--dim);text-align:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px}
+.live.ok{color:var(--ok);border-color:var(--ok)}.live.off{color:var(--tally);border-color:var(--tally)}.live.bad{color:var(--down);border-color:var(--down)}
 .go.noclip{background:var(--panel);border:3px dashed var(--tally);color:var(--tally)}
 .go.stop{background:var(--down);border-color:var(--down);color:#fff}
 .nav{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -89,13 +110,20 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .mix{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center}
 input[type=range]{width:100%;accent-color:var(--tally)}
 .check{display:flex;gap:10px;align-items:center;font-size:15px}
-.check input{width:22px;height:22px;accent-color:var(--tally)}
+.check input{width:22px;height:22px;accent-color:var(--tally);flex:none}
+/* recordings */
+audio{width:100%}
+.mk{display:grid;grid-template-columns:1fr auto;gap:2px 10px;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:10px 0;font-size:16px}
+.mk .t{font-weight:700}.mk .d{color:var(--dim);font-size:14px;font-variant-numeric:tabular-nums;grid-column:1/-1}
+.mk .at{color:var(--dim);font-variant-numeric:tabular-nums}
+.mk .d .ok{color:var(--ok)}.mk .d .off{color:var(--tally)}.mk .d .bad{color:var(--down)}
 /* editor */
 .field{display:flex;flex-direction:column;gap:6px}
-textarea{background:var(--panel);border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:12px;font:400 17px var(--body);width:100%;resize:vertical}
+textarea{background:var(--panel);border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:12px;font:400 17px var(--body);width:100%;resize:vertical;box-sizing:border-box}
 .cue{font-size:22px;line-height:1.3;font-weight:700;color:var(--tally);border-left:4px solid var(--tally);padding:4px 0 4px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
 #shCueEdit{min-height:40px;font-size:14px;color:var(--dim);background:none;border-style:dashed}
-input[type=text],select{background:var(--panel);border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:12px;font:700 17px var(--body);width:100%}
+input[type=text],input[type=date],select{background:var(--panel);border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:12px;font:700 17px var(--body);width:100%;box-sizing:border-box;min-height:48px}
+.panel input[type=text],.panel input[type=date],.panel select{background:var(--bg)}
 canvas{width:100%;display:block;border-radius:10px;background:var(--panel);border:1px solid var(--line);touch-action:manipulation}
 #wave{height:64px}#zoom{height:120px}
 .bpmedit{display:grid;grid-template-columns:56px 1fr 56px;gap:8px;align-items:center}
@@ -104,37 +132,68 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .status{font-size:14px;color:var(--dim);min-height:20px}
 .status.err{color:var(--down)}
-.gig{display:flex;justify-content:space-between;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--tally);border-radius:12px;padding:12px 14px}
+.gig{display:flex;justify-content:space-between;gap:10px;align-items:center;background:var(--panel);border:1px dashed var(--line);border-radius:12px;padding:12px 14px}
 .gig b{font-family:var(--display);font-size:22px;text-transform:uppercase}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);font-weight:700;padding:10px 16px;border-radius:99px;z-index:20}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);font-weight:700;padding:10px 16px;border-radius:99px;z-index:20;max-width:calc(100% - 48px);text-align:center}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}.btn:active{transform:none}}
 </style>
 
 <div class="wrap">
   <header>
-    <div class="brand">Stage<span>click</span></div>
+    <div class="top">
+      <div class="brand">Stage<span>click</span></div>
+      <button class="recbadge" id="recBadge" hidden>● REC 0:00</button>
+    </div>
     <nav class="tabs" id="tabs">
+      <button id="tabGigs" aria-pressed="false">Gigs</button>
       <button id="tabSet" aria-pressed="true">Setlist</button>
       <button id="tabShow" aria-pressed="false">Show</button>
+      <button id="tabRecs" aria-pressed="false">Recs</button>
     </nav>
   </header>
 
+  <!-- GIGS -->
+  <section id="vGigs" class="stage" hidden>
+    <div class="field" id="gigList"></div>
+    <button class="btn primary" id="newGig">+ New gig</button>
+    <div class="panel" id="gigForm" hidden>
+      <span class="label" id="gfTitle">New gig</span>
+      <div class="field"><label class="label" for="gfName">Gig name</label><input type="text" id="gfName" autocomplete="off" placeholder="e.g. Dibitio · Shack 15"></div>
+      <div class="field"><label class="label" for="gfDate">Date</label><input type="date" id="gfDate"></div>
+      <div class="field" id="gfFromBox"><label class="label" for="gfFrom">Songs</label><select id="gfFrom"></select>
+        <span class="muted">Copying brings over each song's BPM, groove clip and note. After that, each gig keeps its own copy.</span></div>
+      <div class="grid2"><button class="btn primary" id="gfSave">Create gig</button><button class="btn" id="gfCancel">Cancel</button></div>
+    </div>
+    <div id="gigs" class="field"></div>
+    <div class="field">
+      <span class="label">Keep your settings safe</span>
+      <div class="grid2">
+        <button class="btn" id="saveBackup">Save backup</button>
+        <label class="btn" style="text-align:center" for="restoreFile">Restore backup</label>
+      </div>
+      <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+      <span class="muted">The backup has every gig's songs, BPMs and notes. Recordings are not included.</span>
+    </div>
+    <div class="muted" id="storageInfo"></div>
+    <p class="muted">Everything is stored in Safari on this phone only. Safari can clear data from sites you haven't opened in 7 days, so open this page every few days and save a backup. Turn the silent switch off and plug your IEM in by cable, not Bluetooth.</p>
+  </section>
+
   <!-- SETLIST -->
   <section id="vSet" class="stage">
+    <div class="gighead"><button class="btn" id="toGigs">◀ Gigs</button><div><span class="label" id="ghDate"></span><b id="ghName">—</b></div></div>
     <div class="list" id="list"></div>
-    <div id="gigs" class="field"></div>
     <div class="grid2">
       <label class="btn primary" style="text-align:center" for="file">+ Add from a file</label>
       <button class="btn primary" id="newRec">● Record a new song</button>
     </div>
+    <button class="btn" id="copyFrom">+ Copy songs from another gig</button>
+    <div class="panel" id="pickPanel" hidden>
+      <span class="label">Pick songs to copy into this gig</span>
+      <div class="pick" id="pickList"></div>
+      <div class="grid2"><button class="btn primary" id="pickAdd" disabled>Add songs</button><button class="btn" id="pickCancel">Cancel</button></div>
+    </div>
     <div class="field">
-      <span class="label">Keep your settings safe</span>
-      <div class="grid2">
-        <button class="btn" id="copyList">Copy BPM list</button>
-        <button class="btn" id="saveBackup">Save backup</button>
-      </div>
-      <label class="btn" style="text-align:center" for="restoreFile">Restore backup</label>
-      <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+      <button class="btn" id="copyList">Copy BPM list</button>
       <span class="muted">Paste the copied BPM list to Claude to make it permanent in the gig setlist.</span>
     </div>
     <input type="file" id="file" accept="audio/*,.m4a,.mp3,.wav,.aac,.caf" hidden>
@@ -144,11 +203,10 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
       <ol>
         <li>Record the run-through in Voice Memos.</li>
         <li>In Voice Memos tap <b>⋯ → Save to Files</b>.</li>
-        <li>Tap <b>Add song</b> above and pick that file.</li>
+        <li>Tap <b>Add from a file</b> above and pick that file.</li>
         <li>Check the BPM, tap the waveform where the groove you want starts, press <b>Check</b>, then <b>Save</b>.</li>
       </ol>
     </div>
-    <p class="muted">Songs are stored in Safari on this phone only. Safari can clear data from sites you haven't opened in 7 days, so open this page every few days and keep your Voice Memos as a backup. Turn the silent switch off and plug your IEM in by cable, not Bluetooth.</p>
   </section>
 
   <!-- SHOW -->
@@ -161,11 +219,20 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
       <textarea id="shCueText" rows="3" placeholder="e.g. Groove in after the intro · backbeat at verse 2"></textarea>
       <div class="grid2"><button class="btn primary" id="shCueSave">Save note</button><button class="btn" id="shCueCancel">Cancel</button></div>
     </div>
-    <div class="bpmrow"><button class="btn adj" id="shMinus" aria-label="Minus 1 BPM">−1</button><div class="bpmbig"><span class="v" id="shBpm">0</span><span class="u">BPM</span></div><button class="btn adj" id="shPlus" aria-label="Plus 1 BPM">+1</button></div>
+    <div class="bpmrow"><button class="btn adj" id="shMinus" aria-label="Minus 1 BPM">−1</button><div class="bpmbig"><div><span class="v" id="shBpm">0</span> <span class="u">BPM</span></div><span class="pill" id="shCf">estimate</span></div><button class="btn adj" id="shPlus" aria-label="Plus 1 BPM">+1</button></div>
+    <div class="grid3">
+      <button class="btn" id="shTap">Tap</button>
+      <button class="btn" id="shUseBand" disabled>Use band BPM</button>
+      <button class="btn" id="shConfirm">✓ Confirm</button>
+    </div>
     <div class="lights" id="lights"></div>
-    <div class="listen"><button class="btn" id="shListen">Listen to the band</button><div class="live" id="shLive">Mic off</div></div>
     <div class="state" id="shState">Ready</div>
     <button class="btn primary go" id="shGo">Play groove → click</button>
+    <div class="live" id="shLive">Mic off</div>
+    <div class="listen">
+      <button class="btn" id="shListen">Listen to the band</button>
+      <button class="btn" id="shRec">● Record the set</button>
+    </div>
     <div class="nav">
       <button class="btn" id="shPrev">◀ Prev</button>
       <button class="btn" id="shNext">Next ▶</button>
@@ -179,10 +246,36 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
       <span class="label">Click</span><input type="range" id="volClick" min="0" max="1.5" step="0.01" value="0.9" aria-label="Click volume">
       <span class="label">Groove</span><input type="range" id="volGroove" min="0" max="1.5" step="0.01" value="0.9" aria-label="Groove volume">
     </div>
-    <div class="field"><label class="label" for="sound">Click sound</label>
+    <div class="field"><label class="label" for="countIn">Click settings</label>
+      <select id="countIn"><option value="0">No count-in</option><option value="1">1 bar count-in before the groove</option><option value="2">2 bars count-in before the groove</option></select>
       <select id="clickLen"><option value="15">Click runs 15 seconds</option><option value="30">Click runs 30 seconds</option><option value="all">Click runs the whole song</option></select>
       <select id="sound"><option value="all">Every beat</option><option value="one">Beat 1 only</option><option value="off">Off · lights only</option></select></div>
     <label class="check"><input type="checkbox" id="overlay" checked> Play the click over the groove too</label>
+  </section>
+
+  <!-- RECORDINGS -->
+  <section id="vRecs" class="stage" hidden>
+    <div class="panel" id="player" hidden>
+      <div><span class="label" id="plMeta"></span><div class="sname" style="font-size:30px" id="plTitle"></div></div>
+      <audio id="plAudio" controls preload="metadata"></audio>
+      <span class="label">Songs · tap one to jump to it</span>
+      <div id="plMarks" class="field" style="gap:0"></div>
+      <div class="grid2"><button class="btn" id="plExport">Save to Files</button><button class="btn" id="plReport">Copy tempo report</button></div>
+      <div class="grid2"><button class="btn danger" id="plDel">Delete</button><button class="btn" id="plClose">Close</button></div>
+    </div>
+    <div class="field" id="recList"></div>
+    <div class="field"><label class="label" for="recQ">Recording quality</label>
+      <select id="recQ"><option value="32000">Small · about 15 MB per hour</option><option value="64000" selected>Good · about 30 MB per hour</option><option value="128000">High · about 60 MB per hour</option></select></div>
+    <div class="muted" id="recStorage"></div>
+    <div class="help">
+      <b>Recording a set</b>
+      <ol>
+        <li>On <b>Show</b>, tap <b>● Record the set</b>. The mic also measures the band's tempo while it records.</li>
+        <li>Each time you press <b>Play</b> or <b>Click only</b>, a song marker is added.</li>
+        <li>Keep the screen on and Stageclick open. Locking the phone can stop the recording.</li>
+        <li>Listen back here, then use <b>Save to Files</b> to keep it and <b>Delete</b> to free space.</li>
+      </ol>
+    </div>
   </section>
 
   <!-- EDITOR -->
@@ -218,6 +311,7 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
         <button class="btn grow" id="bpmRound">Round</button>
         <button class="btn grow" id="tap">Tap</button>
       </div>
+      <label class="check"><input type="checkbox" id="edCf"> This BPM is confirmed with the band</label>
       <button class="btn" id="detect" data-needs-audio>Detect BPM again from the groove start</button>
     </div>
     <div class="grid2">
@@ -247,26 +341,41 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
 "use strict";
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem('sc_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('sc_'+k,JSON.stringify(v))}catch(e){}}};
-function toast(msg){const t=$('toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,1800)}
+function toast(msg){const t=$('toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,2200)}
 const fmtT=s=>{s=Math.max(0,s);const m=Math.floor(s/60);return m+':'+(s-m*60).toFixed(1).padStart(4,'0')};
+const fmtHMS=s=>{s=Math.max(0,Math.floor(s));const h=Math.floor(s/3600),m=Math.floor(s/60)%60,x=s%60;return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0')};
+const fmtMB=b=>b>=1e9?(b/1e9).toFixed(1)+' GB':Math.max(0.1,b/1e6).toFixed(b<1e7?1:0)+' MB';
 const fmtBpm=b=>b==null?'–':Math.abs(b-Math.round(b))<0.05?String(Math.round(b)):b.toFixed(1);
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const fmtDate=d=>{if(!d)return'';const t=new Date(d+'T12:00:00');return isNaN(t)?d:t.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short',year:'numeric'})};
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function arm(b,label,ms,fn){if(b.dataset.armed){b.dataset.armed='';clearTimeout(b.h);fn();return}const old=b.dataset.label||b.textContent;b.dataset.label=old;b.dataset.armed='1';b.classList.add('armed');b.textContent=label;clearTimeout(b.h);b.h=setTimeout(()=>{b.dataset.armed='';b.classList.remove('armed');b.textContent=old},ms||3500)}
 
-/* ---------- storage (IndexedDB) ---------- */
+/* ---------- storage (IndexedDB 'stageclick2'; v1 data in 'stageclick' is copied in once and left untouched) ---------- */
 let db=null;
-function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('stageclick',1);r.onupgradeneeded=()=>{r.result.createObjectStore('songs',{keyPath:'id'});r.result.createObjectStore('meta')};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('stageclick2',1);r.onupgradeneeded=()=>{const d=r.result;d.createObjectStore('songs',{keyPath:'id'}).createIndex('gig','gigId');d.createObjectStore('gigs',{keyPath:'id'});d.createObjectStore('meta');d.createObjectStore('recs',{keyPath:'id'});d.createObjectStore('chunks',{keyPath:'k'}).createIndex('rec','recId')};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
 function req(storeName,mode,fn){return new Promise((res,rej)=>{const t=db.transaction(storeName,mode);const q=fn(t.objectStore(storeName));t.oncomplete=()=>res(q&&q.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})}
-const dbAll=()=>req('songs','readonly',s=>s.getAll());
+const dbSongsOf=gid=>req('songs','readonly',s=>s.index('gig').getAll(gid));
+const dbAllSongs=()=>req('songs','readonly',s=>s.getAll());
 const dbPut=song=>req('songs','readwrite',s=>s.put(song));
 const dbDel=id=>req('songs','readwrite',s=>s.delete(id));
-const dbClear=()=>req('songs','readwrite',s=>s.clear());
+const delByIndex=(st,idx,key)=>req(st,'readwrite',s=>{const q=s.index(idx).openKeyCursor(IDBKeyRange.only(key));q.onsuccess=()=>{const c=q.result;if(c){s.delete(c.primaryKey);c.continue()}}});
+const dbGigs=()=>req('gigs','readonly',s=>s.getAll());
+const gigPut=g=>req('gigs','readwrite',s=>s.put(g));
+const gigDel=id=>req('gigs','readwrite',s=>s.delete(id));
 const metaGet=k=>req('meta','readonly',s=>s.get(k));
 const metaSet=(k,v)=>req('meta','readwrite',s=>s.put(v,k));
+const recPut=r=>req('recs','readwrite',s=>s.put(r));
+const recAll=()=>req('recs','readonly',s=>s.getAll());
+const chunkPut=c=>req('chunks','readwrite',s=>s.put(c));
+const chunksOf=id=>req('chunks','readonly',s=>s.index('rec').getAll(id));
 
 /* ---------- audio engine ---------- */
 let ctx=null,clickGain,grooveGain;
 function getCtx(){
   if(!ctx){
-    try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}
+    try{if(navigator.audioSession)navigator.audioSession.type=mic&&mic.mode?'play-and-record':'playback'}catch(e){}
     ctx=new(window.AudioContext||window.webkitAudioContext)();
     clickGain=ctx.createGain();grooveGain=ctx.createGain();
     clickGain.connect(ctx.destination);grooveGain.connect(ctx.destination);
@@ -279,33 +388,35 @@ async function live(){
   if(c.state!=='running'){
     try{await Promise.race([c.resume(),new Promise(r=>setTimeout(r,400))])}catch(e){}
     if(c.state!=='running'){try{c.close()}catch(e){}ctx=null;clipCache.clear();c=getCtx();try{await Promise.race([c.resume(),new Promise(r=>setTimeout(r,400))])}catch(e){}
-    if(typeof mic!=='undefined'&&mic.mode&&!mic.busy){mic.busy=true;try{await micWire()}catch(e){}mic.busy=false}}
+    if(mic.mode&&!mic.busy){mic.busy=true;try{await micWire()}catch(e){}mic.busy=false}}
   }
   return c;
 }
 function applyVol(){if(!ctx)return;clickGain.gain.value=+$('volClick').value;grooveGain.gain.value=+$('volGroove').value}
 
+const mic={mode:null};
 const eng={running:false,timer:null,beats:[],src:null,owner:null};
-function blip(t,accent){
+function blip(t){
   const o=ctx.createOscillator(),g=ctx.createGain();
   o.type='triangle';o.frequency.value=1245;
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.85,t+0.0015);
   g.gain.exponentialRampToValueAtTime(0.0008,t+0.055);
   o.connect(g);g.connect(clickGain);o.start(t);o.stop(t+0.07);
 }
-function clickStop(s,from){const v=$('clickLen').value;if(v==='all')return Infinity;const bd=barDur(s);return from+Math.max(1,Math.ceil(+v/bd))*bd}
+function clickBars(s){const v=$('clickLen').value;return v==='all'?Infinity:Math.max(1,Math.ceil(+v/barDur(s)))}
+/* opt: countEnd (count-in ends / groove starts), grooveEnd, stopAt, overlay, owner, cBars, gBars, kBars */
 function startClick(t0,bpm,bpb,opt){
-  Object.assign(eng,{running:true,bpm,bpb,next:t0,beat:0,beats:[],overlay:opt.overlay,grooveEnd:opt.grooveEnd||0,stopAt:opt.stopAt||Infinity,owner:opt.owner,t0});
+  Object.assign(eng,{running:true,bpm,bpb,next:t0,beat:0,beats:[],overlay:opt.overlay,countEnd:opt.countEnd||0,grooveEnd:opt.grooveEnd||0,stopAt:opt.stopAt||Infinity,owner:opt.owner,t0,cBars:opt.cBars||0,gBars:opt.gBars||0,kBars:opt.kBars,endAt:null});
   tick();clearInterval(eng.timer);eng.timer=setInterval(tick,25);
 }
 function tick(){
   if(!eng.running)return;
   while(eng.next<ctx.currentTime+0.12){
     if(eng.next>=eng.stopAt-0.002){clearInterval(eng.timer);eng.endAt=eng.stopAt;break}
-    const inG=eng.next<eng.grooveEnd-0.005;
+    const inC=eng.next<eng.countEnd-0.005,inG=!inC&&eng.next<eng.grooveEnd-0.005;
     const snd=$('sound').value,one=eng.beat%eng.bpb===0;
-    if((!inG||eng.overlay)&&(snd==='all'||(snd==='one'&&one)))blip(eng.next,one);
-    eng.beats.push({t:eng.next,b:eng.beat,g:inG});
+    if((inC||!inG||eng.overlay)&&(snd==='all'||(snd==='one'&&one)))blip(eng.next);
+    eng.beats.push({t:eng.next,b:eng.beat,p:inC?'c':inG?'g':'k'});
     eng.beat++;eng.next+=60/eng.bpm;
   }
   if(eng.beats.length>64)eng.beats.splice(0,eng.beats.length-64);
@@ -427,25 +538,98 @@ function wav(chs,sr){
   return b;
 }
 
+/* ---------- gigs ---------- */
+let gigs=[],gigId=null;
+const curGig=()=>gigs.find(g=>g.id===gigId)||null;
+const gigSort=()=>gigs.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.created||0)-(a.created||0));
+function statsOf(list){return{n:list.length,need:list.filter(s=>!s.bpm).length,cf:list.filter(s=>s.bpm&&s.confirmed).length}}
+async function touchGig(){const g=curGig();if(!g)return;Object.assign(g,statsOf(songs));try{if(db)await gigPut(g)}catch(e){}}
+async function openGig(id,toView){
+  stopAll();gigId=id;store.set('gig',id);
+  songs=db?(await dbSongsOf(id)||[]).sort((a,b)=>a.order-b.order):songs.filter(s=>s.gigId===id);
+  cur=Math.max(0,Math.min(songs.length-1,(store.get('curBy',{})[id])|0));
+  show(toView||'set');
+}
+async function newGig(name,date,fromId){
+  const g={id:uid('g'),name:name||'New gig',date:date||today(),created:Date.now(),n:0,need:0,cf:0};
+  if(fromId){const src=(await dbSongsOf(fromId)||[]).sort((a,b)=>a.order-b.order);
+    for(const [i,s] of src.entries())await dbPut({...s,id:uid('s'),gigId:g.id,order:i,rev:(s.rev||0)+1});
+    Object.assign(g,statsOf(src))}
+  await gigPut(g);gigs.push(g);gigSort();return g;
+}
+function renderGigs(){
+  const L=$('gigList');L.innerHTML='';
+  if(!gigs.length)L.innerHTML='<div class="empty">No gigs yet. Tap <b>+ New gig</b> to make your first setlist.</div>';
+  gigs.forEach(g=>{
+    const el=document.createElement('div');el.className='gcard'+(g.id===gigId?' curr':'');
+    const info=`${fmtDate(g.date)} · ${g.n||0} song${g.n===1?'':'s'}`+(g.need?` · <span style="color:var(--tally)">${g.need} need BPM</span>`:'');
+    el.innerHTML=`<button class="main"><span class="label">${info}</span><b></b></button><div class="tools"><button class="ic" aria-label="Rename">✎</button><button class="ic" aria-label="Copy to a new gig"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg></button><button class="ic" aria-label="Delete">✕</button></div>`;
+    el.querySelector('b').textContent=g.name;
+    el.querySelector('.main').onclick=()=>openGig(g.id);
+    const [ren,dup,del]=el.querySelectorAll('.ic');
+    ren.onclick=()=>gigFormOpen('edit',g);
+    dup.onclick=()=>gigFormOpen('new',null,g.id);
+    del.onclick=()=>arm(del,'Delete gig?',3500,async()=>{
+      try{await delByIndex('songs','gig',g.id);await gigDel(g.id)}catch(e){toast('Could not delete');return}
+      gigs=gigs.filter(x=>x.id!==g.id);if(gigId===g.id){gigId=null;songs=[];store.set('gig',null)}
+      toast('Gig deleted');renderGigs();
+    });
+    L.append(el);
+  });
+  storageLine($('storageInfo'));
+}
+let gfMode='new',gfGig=null;
+function gigFormOpen(mode,g,fromId){
+  gfMode=mode;gfGig=g;$('gigForm').hidden=false;$('newGig').hidden=true;
+  $('gfTitle').textContent=mode==='edit'?'Rename gig':'New gig';$('gfSave').textContent=mode==='edit'?'Save':'Create gig';
+  $('gfName').value=g?g.name:'';$('gfDate').value=g?g.date:today();$('gfFromBox').hidden=mode==='edit';
+  const sel=$('gfFrom');sel.innerHTML='<option value="">Start with an empty setlist</option>'+gigs.map(x=>`<option value="${esc(x.id)}">Copy songs from ${esc(x.name)} (${esc(x.date)})</option>`).join('');
+  sel.value=fromId||'';$('gfName').focus();
+}
+function gigFormClose(){$('gigForm').hidden=true;$('newGig').hidden=false}
+$('newGig').onclick=()=>gigFormOpen('new',null,gigId||'');
+$('gfCancel').onclick=gigFormClose;
+$('gfSave').onclick=async()=>{
+  const name=$('gfName').value.trim()||'New gig',date=$('gfDate').value||today();
+  try{
+    if(gfMode==='edit'){gfGig.name=name;gfGig.date=date;await gigPut(gfGig);gigSort();gigFormClose();renderGigs();toast('Saved');return}
+    const g=await newGig(name,date,$('gfFrom').value);gigFormClose();toast('Gig created');openGig(g.id);
+  }catch(e){toast('Could not save. The phone may be out of storage.')}
+};
+async function storageLine(el){
+  try{const e=await navigator.storage.estimate();el.textContent=`Stageclick is using ${fmtMB(e.usage||0)} of this phone's storage`+(e.quota?` (Safari allows up to ${fmtMB(e.quota)})`:'')+'.'}catch(e){el.textContent=''}
+}
+
 /* ---------- views ---------- */
 let view='set';
 function show(v){
   if(v!=='edit'&&mic.mode==='rec')micStop();
-  view=v;if(v!=='edit')store.set('view',v);$('vSet').hidden=v!=='set';$('vShow').hidden=v!=='show';$('vEdit').hidden=v!=='edit';
-  $('tabSet').setAttribute('aria-pressed',v==='set'||v==='edit');$('tabShow').setAttribute('aria-pressed',v==='show');
+  if(v==='set'&&!curGig())v='gigs';
+  view=v;if(v!=='edit')store.set('view',v);
+  for(const [k,id] of [['gigs','vGigs'],['set','vSet'],['show','vShow'],['edit','vEdit'],['recs','vRecs']])$(id).hidden=v!==k;
+  $('tabGigs').setAttribute('aria-pressed',v==='gigs');$('tabSet').setAttribute('aria-pressed',v==='set'||v==='edit');
+  $('tabShow').setAttribute('aria-pressed',v==='show');$('tabRecs').setAttribute('aria-pressed',v==='recs');
   if(v==='show'){renderShow();wake()}
   if(v==='set')renderList();
+  if(v==='gigs'){gigFormClose();renderGigs()}
+  if(v==='recs')renderRecs();
   window.scrollTo(0,0);
 }
+$('tabGigs').onclick=()=>{if(view==='edit')stopAll();show('gigs')};
 $('tabSet').onclick=()=>{if(view==='edit')stopAll();show('set')};
 $('tabShow').onclick=()=>{if(view==='edit')stopAll();show('show')};
+$('tabRecs').onclick=()=>{if(view==='edit')stopAll();show('recs')};
+$('toGigs').onclick=()=>show('gigs');
 
 function renderList(){
+  const g=curGig();$('ghName').textContent=g?g.name:'—';$('ghDate').textContent=g?fmtDate(g.date)+' · setlist':'';
+  $('pickPanel').hidden=true;$('copyFrom').hidden=gigs.length<2;
   const L=$('list');L.innerHTML='';
-  if(!songs.length){L.innerHTML='<div class="empty">No songs yet. Add one from a rehearsal recording.</div>';return}
+  if(!songs.length){L.innerHTML='<div class="empty">No songs in this gig yet. Add one from a recording, record one, or copy songs from another gig.</div>';return}
   songs.forEach((s,i)=>{
     const r=document.createElement('div');r.className='song';
-    r.innerHTML=`<div class="n">${i+1}</div><button class="main"><div class="t"></div><div class="m">${s.bpm?fmtBpm(s.bpm)+' BPM':'BPM not set'} · ${s.bpb}/4 · ${s.clip?s.bars+' bar groove':'no groove clip'}${s.note?' · '+esc(s.note):''}</div></button>
+    const bpm=s.bpm?`${fmtBpm(s.bpm)} BPM`+(s.confirmed?' <span class="cf">✓</span>':''):'<span class="need">BPM not set</span>';
+    r.innerHTML=`<div class="n">${i+1}</div><button class="main"><div class="t"></div><div class="m">${bpm} · ${s.bpb}/4 · ${s.clip?s.bars+' bar groove':'no groove clip'}${s.note?' · '+esc(s.note):''}</div></button>
       <div class="tools"><button class="ic" aria-label="Move up" ${i?'':'disabled'}>↑</button><button class="ic" aria-label="Move down" ${i<songs.length-1?'':'disabled'}>↓</button><button class="ic" aria-label="Edit">✎</button></div>`;
     const t=r.querySelector('.t');t.textContent=s.name+' ';if(s.example){const p=document.createElement('span');p.className='pill ex';p.textContent='Example';t.append(p)}
     r.querySelector('.main').onclick=()=>{cur=i;show('show')};
@@ -459,56 +643,97 @@ async function move(i,d){
   songs.forEach((s,k)=>s.order=k);renderList();
   try{await Promise.all([dbPut(songs[i]),dbPut(songs[j])])}catch(e){toast('Could not save the new order')}
 }
+/* copy songs from another gig */
+let pickSrc=[];
+$('copyFrom').onclick=async()=>{
+  const P=$('pickList');P.innerHTML='<span class="muted">Loading…</span>';$('pickPanel').hidden=false;$('copyFrom').hidden=true;
+  const all=await dbAllSongs(),have=new Set(songs.map(s=>s.name.toLowerCase()));
+  pickSrc=all.filter(s=>s.gigId!==gigId&&!s.example);P.innerHTML='';
+  for(const g of gigs){if(g.id===gigId)continue;const list=pickSrc.filter(s=>s.gigId===g.id).sort((a,b)=>a.order-b.order);if(!list.length)continue;
+    const h=document.createElement('span');h.className='label';h.textContent=g.name+' · '+g.date;P.append(h);
+    for(const s of list){const l=document.createElement('label');l.className='check';l.innerHTML=`<input type="checkbox" value="${esc(s.id)}"><span></span>`;
+      l.querySelector('span').textContent=`${s.name} · ${s.bpm?fmtBpm(s.bpm)+' BPM':'no BPM'}${s.confirmed?' ✓':''}${s.clip?' · groove':''}${have.has(s.name.toLowerCase())?' · already in this gig':''}`;P.append(l)}}
+  if(!P.children.length)P.innerHTML='<span class="muted">The other gigs have no songs yet.</span>';
+  P.onchange=()=>{const n=P.querySelectorAll('input:checked').length;$('pickAdd').disabled=!n;$('pickAdd').textContent=n?`Add ${n} song${n>1?'s':''}`:'Add songs'};P.onchange();
+};
+$('pickCancel').onclick=()=>{$('pickPanel').hidden=true;$('copyFrom').hidden=false;pickSrc=[]};
+$('pickAdd').onclick=async()=>{
+  const ids=[...$('pickList').querySelectorAll('input:checked')].map(x=>x.value);
+  try{for(const id of ids){const s=pickSrc.find(x=>x.id===id);const c={...s,id:uid('s'),gigId,order:songs.length,rev:(s.rev||0)+1};await dbPut(c);songs.push(c)}}
+  catch(e){toast('Could not copy. The phone may be out of storage.')}
+  pickSrc=[];await touchGig();renderList();toast(`Added ${ids.length} song${ids.length>1?'s':''}`);
+};
 
-const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 /* ---------- show ---------- */
 function renderShow(){
-  store.set('cur',cur);
-  if(!songs.length){$('shName').textContent='No songs';$('shBpm').textContent='–';$('shPos').textContent='Setlist is empty';$('shGo').disabled=true;return}
+  const by=store.get('curBy',{});by[gigId]=cur;store.set('curBy',by);
+  if(!songs.length){$('shName').textContent=curGig()?'No songs':'No gig open';$('shBpm').textContent='–';$('shPos').textContent=curGig()?curGig().name+' · setlist is empty':'Pick a gig in Gigs';$('shGo').disabled=true;$('shClick').disabled=true;$('shPrev').disabled=$('shNext').disabled=true;$('shCf').hidden=true;return}
   cur=Math.min(cur,songs.length-1);const s=songs[cur];$('shGo').disabled=!s.bpm;$('shGo').classList.toggle('noclip',!s.clip);$('shClick').disabled=!s.bpm;
   $('shPos').textContent=`Song ${cur+1} of ${songs.length}`;$('shName').textContent=s.name;$('shBpm').textContent=fmtBpm(s.bpm);$('shMeter').textContent=s.bpb+' beats/bar';
-  const n=songs[cur+1];$('nxName').textContent=n?n.name:'End of set';$('nxMeta').textContent=n?`${n.bpm?fmtBpm(n.bpm):'No'} BPM · ${n.bpb} beats/bar`:'This is the last song';
+  renderCf();
+  const n=songs[cur+1];$('nxName').textContent=n?n.name:'End of set';$('nxMeta').textContent=n?`${n.bpm?fmtBpm(n.bpm):'No'} BPM${n.confirmed?' ✓':''} · ${n.bpb} beats/bar`:'This is the last song';
   $('shCue').hidden=!s.cue;$('shCue').textContent=s.cue||'';$('shCueBox').hidden=true;$('shCueEdit').hidden=false;$('shCueEdit').textContent=s.cue?'✎ Edit note':'✎ Add a note for this song';
   $('shPrev').disabled=cur===0;$('shNext').disabled=!n;
   lastLit=-2;const lt=$('lights');lt.innerHTML='';for(let i=0;i<s.bpb;i++){const d=document.createElement('i');if(!i)d.className='one';lt.append(d)}
-  renderShowState();
+  mic.est=[];renderBand();renderShowState();
+}
+function renderCf(){
+  const s=songs[cur],p=$('shCf'),b=$('shConfirm');if(!s){p.hidden=true;return}
+  p.hidden=!s.bpm;p.className='pill'+(s.confirmed?' ok':'');p.textContent=s.confirmed?'✓ confirmed':'not confirmed';
+  b.disabled=!s.bpm;b.classList.toggle('ok',!!s.confirmed);b.textContent=s.confirmed?'✓ Confirmed':'✓ Confirm';
 }
 let lastState='';
-function renderShowState(txt){const h=txt||'Ready';if(h!==lastState){$('shState').innerHTML=h;lastState=h}const go=$('shGo');const playing=eng.running&&eng.owner==='show';go.classList.toggle('stop',playing);const s=songs[cur];go.textContent=playing?'Stop':!s||!s.bpm?'Set the BPM in Setlist':!s.clip?'Click only · no groove':'Play groove → click'}
+function renderShowState(txt){const h=txt||'Ready';if(h!==lastState){$('shState').innerHTML=h;lastState=h}const go=$('shGo');const playing=eng.running&&eng.owner==='show';go.classList.toggle('stop',playing);const s=songs[cur];go.textContent=playing?'Stop':!s||!s.bpm?'Set the BPM first':!s.clip?'Click only · no groove':'Play groove → click'}
 let lastLit=-2;
 function setLights(k){if(k===lastLit)return;lastLit=k;[...$('lights').children].forEach((d,i)=>d.classList.toggle('on',i===k))}
-$('shGo').onclick=async()=>{
-  if(eng.running&&eng.owner==='show'){stopAll();return}
+async function startShow(withGroove){
   stopAll();const s=songs[cur];if(!s||!s.bpm)return;
-  if(!s.clip){const c=await live(),t=c.currentTime+0.1;startClick(t,s.bpm,s.bpb,{owner:'show',stopAt:clickStop(s,t)});renderShowState('Click');wake();return}
-  const c=await live(),t0=c.currentTime+0.15,dur=grooveDur(s);
-  playBuf(clipBuffer(s),t0,0,dur);
-  startClick(t0,s.bpm,s.bpb,{overlay:$('overlay').checked,grooveEnd:t0+dur,stopAt:clickStop(s,t0+dur),owner:'show'});
-  renderShowState('Starting…');wake();
-};
-$('shClick').onclick=async()=>{stopAll();const s=songs[cur];if(!s||!s.bpm)return;const c=await live(),t=c.currentTime+0.1;startClick(t,s.bpm,s.bpb,{owner:'show',stopAt:clickStop(s,t)});renderShowState('Click');wake()};
+  const c=await live(),bd=barDur(s),ci=withGroove?(+$('countIn').value||0):0,t0=c.currentTime+0.15,gs=t0+ci*bd;
+  const groove=withGroove&&s.clip,dur=groove?grooveDur(s):0,kb=clickBars(s);
+  if(groove)playBuf(clipBuffer(s),gs,0,dur);
+  startClick(t0,s.bpm,s.bpb,{overlay:$('overlay').checked,countEnd:gs,grooveEnd:gs+dur,stopAt:isFinite(kb)?gs+dur+kb*bd:Infinity,owner:'show',cBars:ci,gBars:groove?s.bars:0,kBars:kb});
+  renderShowState(ci?'<span class="g">Count-in</span>':groove?'Starting…':'Click');wake();recMark(s);
+}
+$('shGo').onclick=()=>{if(eng.running&&eng.owner==='show'){stopAll();return}startShow(true)};
+$('shClick').onclick=()=>startShow(false);
 $('shStop').onclick=stopAll;
 $('shCueEdit').onclick=()=>{const s=songs[cur];if(!s)return;$('shCueText').value=s.cue||'';$('shCueBox').hidden=false;$('shCueEdit').hidden=true;$('shCueText').focus()};
 $('shCueCancel').onclick=()=>{$('shCueBox').hidden=true;$('shCueEdit').hidden=false};
 $('shCueSave').onclick=async()=>{const s=songs[cur];if(!s)return;s.cue=$('shCueText').value.trim();try{if(db)await dbPut(s);toast('Note saved')}catch(e){toast('Could not save the note')}renderShow()};
 let showSave=null,showTaps=[];
-function setShowBpm(b){
-  const s=songs[cur];if(!s||!isFinite(b))return;b=Math.max(30,Math.min(300,Math.round(b)));s.bpm=b;
-  $('shBpm').textContent=fmtBpm(b);$('shClick').disabled=false;$('shGo').disabled=false;
-  if(eng.running&&eng.owner==='show'&&eng.next>=eng.grooveEnd)eng.bpm=b;   // live change once the click is on its own
+function setShowBpm(b,why){
+  const s=songs[cur];if(!s||!isFinite(b))return;b=Math.max(30,Math.min(300,Math.round(b)));
+  if(s.bpm!==b)s.confirmed=null;s.bpm=b;
+  $('shBpm').textContent=fmtBpm(b);$('shClick').disabled=false;$('shGo').disabled=false;renderCf();
+  if(eng.running&&eng.owner==='show'&&eng.next>=eng.grooveEnd&&eng.next>=eng.countEnd)eng.bpm=b;   // live change once the click is on its own
   if(!eng.running)renderShowState();
-  clearTimeout(showSave);showSave=setTimeout(async()=>{try{if(db)await dbPut(s);toast('Saved '+b+' BPM')}catch(e){toast('Could not save the BPM')}},600);
+  clearTimeout(showSave);showSave=setTimeout(async()=>{try{if(db)await dbPut(s);await touchGig();toast((why||'Saved')+' '+b+' BPM · tap ✓ when it\'s right')}catch(e){toast('Could not save the BPM')}},600);
 }
 $('shMinus').onclick=()=>setShowBpm((songs[cur]&&songs[cur].bpm||101)-1);
 $('shPlus').onclick=()=>setShowBpm((songs[cur]&&songs[cur].bpm||99)+1);
+$('shTap').onclick=()=>{
+  const t=performance.now(),b=$('shTap');if(showTaps.length&&t-showTaps[showTaps.length-1]>2000)showTaps=[];showTaps.push(t);if(showTaps.length>9)showTaps.shift();
+  if(showTaps.length>=4){const bpm=60000*(showTaps.length-1)/(t-showTaps[0]);b.textContent='Tap · '+Math.round(bpm);setShowBpm(bpm,'Tapped')}
+  else b.textContent='Tap '+showTaps.length+'/4';
+  clearTimeout(b.h);b.h=setTimeout(()=>{b.textContent='Tap';showTaps=[]},2000);
+};
+let altOffer=null;
+$('shUseBand').onclick=()=>{
+  if(altOffer){const a=altOffer;altOffer=null;setShowBpm(a,'Changed to');return}
+  if(!mic.band)return;const alt=mic.alt;setShowBpm(mic.band,'Set to band');
+  if(alt){altOffer=alt;const u=$('shUseBand');setTimeout(()=>{u.disabled=false;u.textContent='Or '+alt+'?'},700);clearTimeout(u.h2);u.h2=setTimeout(()=>{altOffer=null;renderBand(null)},8000)}
+};
+$('shConfirm').onclick=async()=>{const s=songs[cur];if(!s||!s.bpm)return;s.confirmed=s.confirmed?null:today();renderCf();try{if(db)await dbPut(s);await touchGig();toast(s.confirmed?`${fmtBpm(s.bpm)} BPM confirmed`:'Marked as not confirmed')}catch(e){toast('Could not save')}};
 $('shPrev').onclick=()=>{stopAll();showTaps=[];if(cur>0){cur--;renderShow()}};
-$('shNext').onclick=()=>{stopAll();if(cur<songs.length-1){cur++;renderShow()}};
+$('shNext').onclick=()=>{stopAll();showTaps=[];if(cur<songs.length-1){cur++;renderShow()}};
 $('volClick').oninput=$('volGroove').oninput=()=>{applyVol();store.set('vol',[+$('volClick').value,+$('volGroove').value])};
 $('overlay').onchange=()=>{store.set('overlay',$('overlay').checked);eng.overlay=$('overlay').checked};
 
 /* ---------- animation loop ---------- */
+let badgeT=0;
 function frame(){
   requestAnimationFrame(frame);
+  if(setRec.mr&&performance.now()-badgeT>500){badgeT=performance.now();const t=fmtHMS((performance.now()-setRec.t0)/1000);$('recBadge').textContent='● REC '+t;$('shRec').textContent='■ Stop recording · '+t}
   if(!ctx||!eng.running)return;
   const now=ctx.currentTime;
   if(eng.endAt&&now>=eng.endAt){stopAll();return}
@@ -517,7 +742,9 @@ function frame(){
     if(!last){setLights(-1);return}
     const lit=now-last.t<0.12?last.b%eng.bpb:-1;setLights(lit);
     const bar=Math.floor(last.b/eng.bpb)+1,s=songs[cur];
-    renderShowState(last.g?`<span class="g">Groove</span> · bar ${bar} of ${s.bars}`:`Click · bar ${bar-(eng.grooveEnd>eng.t0?s.bars:0)}`+(isFinite(eng.stopAt)?` of ${Math.round((eng.stopAt-Math.max(eng.grooveEnd,eng.t0))/(eng.bpb*60/eng.bpm))}`:''));
+    renderShowState(last.p==='c'?`<span class="g">Count-in</span> · bar ${bar} of ${eng.cBars} &nbsp;<span class="ci">${last.b%eng.bpb+1}</span>`:
+      last.p==='g'?`<span class="g">Groove</span> · bar ${bar-eng.cBars} of ${eng.gBars}`:
+      `Click · bar ${bar-eng.cBars-eng.gBars}`+(isFinite(eng.kBars)?` of ${eng.kBars}`:''));
   }else if(eng.owner==='edit')drawZoom(now);
 }
 requestAnimationFrame(frame);
@@ -525,7 +752,7 @@ requestAnimationFrame(frame);
 /* ---------- wake lock ---------- */
 let lock=null;
 async function wake(){try{if('wakeLock' in navigator&&!lock){lock=await navigator.wakeLock.request('screen');lock.addEventListener('release',()=>lock=null)}}catch(e){}}
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&view==='show')wake()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&(view==='show'||setRec.mr))wake()});
 
 /* ---------- editor ---------- */
 let ed=null;
@@ -538,7 +765,7 @@ $('file').onchange=async e=>{
     const ab=await f.arrayBuffer(),buf=await decodeAudio(ab);
     st.textContent='Finding the tempo…';await new Promise(r=>setTimeout(r,30));
     const from=loudStart(buf),d=detect(buf,from,45,4);
-    const song={id:'s-'+Date.now(),name:f.name.replace(/\.[^.]+$/,''),bpm:d.bpm,bpb:4,bars:4,gridT:d.gridT,startT:0,order:songs.length,rev:1,fileName:f.name,audio:ab};
+    const song={id:uid('s'),gigId,name:f.name.replace(/\.[^.]+$/,''),bpm:d.bpm,bpb:4,bars:4,gridT:d.gridT,startT:0,order:songs.length,rev:1,fileName:f.name,audio:ab};
     ed={song,buf,isNew:true};song.startT=snap(song,Math.max(d.gridT,from));
     st.textContent='';openEditorUI();
   }catch(err){st.classList.add('err');st.textContent='This file could not be read. Try saving the Voice Memo to Files again, or use an M4A, MP3 or WAV file.'}
@@ -559,18 +786,18 @@ function openEditorUI(){
   delArm(false);show('edit');peaks=null;requestAnimationFrame(()=>{refreshEditor()});
 }
 function refreshEditor(){
-  const s=ed.song,has=!!ed.buf;$('edBpm').textContent=fmtBpm(s.bpm);
+  const s=ed.song,has=!!ed.buf;$('edBpm').textContent=fmtBpm(s.bpm);$('edCf').checked=!!s.confirmed;$('edCf').disabled=!s.bpm;
   $('edWaveField').hidden=!has;document.querySelectorAll('[data-needs-audio]').forEach(e=>e.hidden=!has);
   $('edAttach').textContent=has?'Replace the recording':'Add a recording for this song';
   if(!has){edStatus('');return}
-  const barNo=Math.round((s.startT-s.gridT)/barDur(s))+1;
   edStatus(`Groove starts at ${fmtT(s.startT)} · ${s.bars} bar${s.bars>1?'s':''} = ${grooveDur(s).toFixed(1)} s`);
   drawWave();drawZoom();
 }
 function setBpm(b){
   const s=ed.song;if(!isFinite(b))b=100;b=Math.max(30,Math.min(300,Math.round(b*10)/10));
-  const anchor=s.startT;s.bpm=b;s.gridT=anchor;s.startT=snap(s,anchor);refreshEditor();
+  const anchor=s.startT;if(s.bpm!==b)s.confirmed=null;s.bpm=b;s.gridT=anchor;s.startT=snap(s,anchor);refreshEditor();
 }
+$('edCf').onchange=()=>{ed.song.confirmed=$('edCf').checked?today():null};
 $('bpmMinus').onclick=()=>setBpm((ed.song.bpm||101)-1);
 $('bpmPlus').onclick=()=>setBpm((ed.song.bpm||99)+1);
 $('bpmHalf').onclick=()=>ed.song.bpm&&setBpm(ed.song.bpm/2);
@@ -585,7 +812,7 @@ $('tap').onclick=()=>{
 };
 $('detect').onclick=()=>{
   const s=ed.song;edStatus('Finding the tempo…');
-  setTimeout(()=>{const d=detect(ed.buf,Math.max(0,s.startT-0.5),45,s.bpb);s.bpm=d.bpm;s.gridT=d.gridT;s.startT=snap(s,s.startT);refreshEditor();toast('Detected '+fmtBpm(d.bpm)+' BPM')},30);
+  setTimeout(()=>{const d=detect(ed.buf,Math.max(0,s.startT-0.5),45,s.bpb);if(s.bpm!==d.bpm)s.confirmed=null;s.bpm=d.bpm;s.gridT=d.gridT;s.startT=snap(s,s.startT);refreshEditor();toast('Detected '+fmtBpm(d.bpm)+' BPM')},30);
 };
 $('meter').onchange=()=>{const s=ed.song;s.bpb=+$('meter').value;s.gridT=s.startT;refreshEditor()};
 $('bars').onchange=()=>{const s=ed.song;s.bars=+$('bars').value;s.startT=snap(s,s.startT);refreshEditor()};
@@ -605,12 +832,12 @@ $('edCheck').onclick=async()=>{
 };
 $('edBack').onclick=()=>{stopAll();show('set')};
 $('edSave').onclick=async()=>{
-  stopAll();const s=ed.song;s.name=($('edName').value.trim()||'Untitled song');
+  stopAll();const s=ed.song;s.name=($('edName').value.trim()||'Untitled song');s.gigId=s.gigId||gigId;
   if(ed.buf&&s.bpm)s.clip=clipFrom(ed.buf,s.startT,grooveDur(s));s.rev=(s.rev||0)+1;
   try{
     await dbPut(s);
     const i=songs.findIndex(x=>x.id===s.id);if(i>=0)songs[i]=s;else songs.push(s);
-    toast('Saved');ed=null;show('set');
+    await touchGig();toast('Saved');ed=null;show('set');
   }catch(e){toast('Could not save. The phone may be out of storage.')}
 };
 function delArm(on){const b=$('edDel');b.classList.toggle('armed',on);b.textContent=on?'Tap again to delete':'Delete';b.dataset.armed=on?'1':''}
@@ -618,7 +845,7 @@ $('edDel').onclick=async()=>{
   const b=$('edDel');
   if(!b.dataset.armed){delArm(true);clearTimeout(b.h);b.h=setTimeout(()=>delArm(false),3000);return}
   stopAll();const s=ed.song;
-  if(!ed.isNew){try{await dbDel(s.id)}catch(e){}songs=songs.filter(x=>x.id!==s.id);songs.forEach((x,k)=>x.order=k)}
+  if(!ed.isNew){try{await dbDel(s.id)}catch(e){}songs=songs.filter(x=>x.id!==s.id);songs.forEach((x,k)=>x.order=k);await touchGig()}
   toast('Deleted');ed=null;show('set');
 };
 
@@ -672,28 +899,29 @@ $('edFile').onchange=async e=>{
   }catch(err){edStatus('This file could not be read. Use an M4A, MP3 or WAV file.',true)}
 };
 
-/* ---------- gig setlists from the repo ---------- */
+/* ---------- gig setlists from the repo (each becomes its own gig on the phone) ---------- */
 async function loadGigIndex(){
-  let gigs=[];try{const r=await fetch('gigs/index.json',{cache:'no-store'});if(r.ok)gigs=await r.json()}catch(e){}
+  let list=[];try{const r=await fetch('gigs/index.json',{cache:'no-store'});if(r.ok)list=await r.json()}catch(e){}
   const box=$('gigs');box.innerHTML='';
-  gigs.forEach(g=>{
+  if(list.length){const h=document.createElement('span');h.className='label';h.textContent='Setlists from Claude';box.append(h)}
+  list.forEach(g=>{
     const el=document.createElement('div');el.className='gig';
-    el.innerHTML=`<div><span class="label">Gig setlist · ${esc(g.date)}</span><br><b>${esc(g.name)}</b></div><button class="btn primary">Load</button>`;
-    const b=el.querySelector('button');
-    b.onclick=()=>{
-      if(songs.some(s=>!s.example)&&!b.dataset.armed){b.dataset.armed='1';b.classList.add('armed');b.textContent='Replaces your list · tap again';setTimeout(()=>{b.dataset.armed='';b.classList.remove('armed');b.textContent='Load'},4000);return}
-      loadGig(g);
-    };
+    el.innerHTML=`<div><span class="label">${esc(g.date)}</span><br><b>${esc(g.name)}</b></div><button class="btn primary"></button>`;
+    const b=el.querySelector('button'),mine=()=>gigs.find(x=>x.src===g.id);
+    b.textContent=mine()?'Reload':'Load';
+    b.onclick=()=>{if(mine())arm(b,'Replaces its songs · tap again',4000,()=>loadGig(g));else loadGig(g)};
     box.append(el);
   });
 }
 async function loadGig(g){
-  stopAll();const st=$('setStatus');st.classList.remove('err');
+  stopAll();const st=$('setStatus'),gs=$('storageInfo');
   try{
     const base='gigs/'+g.id+'/',sl=await (await fetch(base+'setlist.json',{cache:'no-store'})).json(),out=[];
+    let G=gigs.find(x=>x.src===g.id);
+    if(!G){G={id:uid('g'),name:sl.gig||g.name,date:sl.date||g.date,src:g.id,created:Date.now()};gigs.push(G)}
     for(const [i,x] of sl.songs.entries()){
-      st.textContent=`Loading ${i+1} of ${sl.songs.length}: ${x.name}`;
-      const s={id:'g'+Date.now().toString(36)+'-'+i,name:x.name,bpm:x.bpm||null,bpb:x.bpb||4,bars:x.bars||4,gridT:0,startT:0,order:i,rev:1,gig:g.id,note:x.note||'',cue:x.cue||'',fileName:'',audio:null,clip:null};
+      gs.textContent=`Loading ${i+1} of ${sl.songs.length}: ${x.name}`;
+      const s={id:uid('s'),gigId:G.id,name:x.name,bpm:x.bpm||null,bpb:x.bpb||4,bars:x.bars||4,gridT:0,startT:0,order:i,rev:1,gig:g.id,note:x.note||'',cue:x.cue||'',confirmed:x.bpm&&x.confirmed?String(x.confirmed):null,fileName:'',audio:null,clip:null};
       if(x.clip){
         try{
           const ab=await (await fetch(base+x.clip)).arrayBuffer(),buf=await decodeAudio(ab),d=detect(buf,0,buf.duration,s.bpb);
@@ -703,48 +931,67 @@ async function loadGig(g){
       }
       out.push(s);
     }
-    if(db){await dbClear();for(const s of out)await dbPut(s)}
-    songs=out;cur=0;st.textContent='';renderList();toast(`Loaded ${out.length} songs`);
-  }catch(e){st.classList.add('err');st.textContent='Could not load the gig setlist. Check your internet connection and try again.'}
+    if(db){await delByIndex('songs','gig',G.id);for(const s of out)await dbPut(s)}
+    Object.assign(G,statsOf(out));if(db)await gigPut(G);gigSort();
+    gs.textContent='';toast(`Loaded ${out.length} songs`);loadGigIndex();
+    if(db)openGig(G.id);else{songs=out;gigId=G.id;show('set')}
+  }catch(e){gs.textContent='Could not load the gig setlist. Check your internet connection and try again.'}
 }
 
 /* ---------- backup / restore / copy ---------- */
-const settingsOf=s=>({name:s.name,bpm:s.bpm,bpb:s.bpb,bars:s.bars,gridT:s.gridT,startT:s.startT,order:s.order,note:s.note||'',cue:s.cue||''});
+const settingsOf=s=>({name:s.name,bpm:s.bpm,bpb:s.bpb,bars:s.bars,gridT:s.gridT,startT:s.startT,order:s.order,note:s.note||'',cue:s.cue||'',confirmed:s.confirmed||null});
 $('copyList').onclick=()=>{
-  const txt=songs.map((s,i)=>`${i+1}. ${s.name} — ${s.bpm?fmtBpm(s.bpm)+' BPM':'BPM not set'} · ${s.bpb}/bar${s.cue?' · NOTE: '+s.cue.replace(/\n/g,' / '):''}`).join('\n');
+  const g=curGig();
+  const txt=(g?`${g.name} · ${g.date}\n`:'')+songs.map((s,i)=>`${i+1}. ${s.name} — ${s.bpm?fmtBpm(s.bpm)+' BPM'+(s.confirmed?' ✓':''):'BPM not set'} · ${s.bpb}/bar${s.cue?' · NOTE: '+s.cue.replace(/\n/g,' / '):''}`).join('\n');
   navigator.clipboard.writeText(txt).then(()=>toast('BPM list copied'),()=>toast('Copy failed'));
 };
-$('saveBackup').onclick=()=>{
-  const blob=new Blob([JSON.stringify({app:'stageclick',v:1,saved:new Date().toISOString(),songs:songs.map(settingsOf)},null,1)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='stageclick-backup-'+new Date().toISOString().slice(0,10)+'.json';
+$('saveBackup').onclick=async()=>{
+  const all=db?await dbAllSongs():songs;
+  const data={app:'stageclick',v:2,saved:new Date().toISOString(),gigs:gigs.map(g=>({id:g.id,name:g.name,date:g.date,src:g.src||null,songs:all.filter(s=>s.gigId===g.id).sort((a,b)=>a.order-b.order).map(settingsOf)}))};
+  const blob=new Blob([JSON.stringify(data,null,1)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='stageclick-backup-'+today()+'.json';
   document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
 };
+async function restoreInto(gid,existing,bkSongs){
+  const byName=new Map(existing.map(s=>[s.name.toLowerCase(),s])),out=[];
+  for(const [i,b] of bkSongs.entries()){
+    let s=byName.get(String(b.name).toLowerCase());
+    if(s){byName.delete(s.name.toLowerCase());const moved=s.startT!==b.startT||s.bpm!==b.bpm||s.bars!==b.bars||s.bpb!==b.bpb;Object.assign(s,settingsOf(b));
+      if(moved&&s.audio&&s.bpm){const buf=await decodeAudio(s.audio);s.clip=clipFrom(buf,s.startT,grooveDur(s));s.rev=(s.rev||0)+1}}
+    else s={id:uid('r'),...settingsOf(b),rev:1,audio:null,clip:null,fileName:''};
+    s.gigId=gid;s.order=i;out.push(s);
+  }
+  for(const s of byName.values()){s.order=out.length;out.push(s)}
+  if(db)for(const s of out)await dbPut(s);
+  return out;
+}
 $('restoreFile').onchange=async e=>{
   const f=e.target.files[0];e.target.value='';if(!f)return;
   try{
-    const bk=JSON.parse(await f.text());if(!bk||!Array.isArray(bk.songs))throw 0;
-    const byName=new Map(songs.map(s=>[s.name.toLowerCase(),s])),out=[];
-    for(const [i,b] of bk.songs.entries()){
-      let s=byName.get(String(b.name).toLowerCase());
-      if(s){byName.delete(s.name.toLowerCase());const moved=s.startT!==b.startT||s.bpm!==b.bpm||s.bars!==b.bars||s.bpb!==b.bpb;Object.assign(s,settingsOf(b));
-        if(moved&&s.audio&&s.bpm){const buf=await decodeAudio(s.audio);s.clip=clipFrom(buf,s.startT,grooveDur(s));s.rev=(s.rev||0)+1}}
-      else s={id:'r'+Date.now().toString(36)+'-'+i,...settingsOf(b),rev:1,audio:null,clip:null,fileName:''};
-      s.order=i;out.push(s);
-    }
-    for(const s of byName.values()){s.order=out.length;out.push(s)}
-    if(db)for(const s of out)await dbPut(s);
-    songs=out;renderList();toast('Backup restored');
+    const bk=JSON.parse(await f.text());
+    if(bk&&Array.isArray(bk.gigs)){
+      for(const bg of bk.gigs){
+        let G=gigs.find(x=>x.id===bg.id)||gigs.find(x=>x.name===bg.name&&x.date===bg.date);
+        if(!G){G={id:bg.id||uid('g'),name:bg.name,date:bg.date,src:bg.src||null,created:Date.now()};gigs.push(G)}
+        const out=await restoreInto(G.id,db?await dbSongsOf(G.id):[],bg.songs||[]);Object.assign(G,statsOf(out));if(db)await gigPut(G);
+      }
+      gigSort();
+    }else if(bk&&Array.isArray(bk.songs)){
+      if(!curGig()){const g=await newGig('Restored setlist',today());gigId=g.id}
+      await restoreInto(gigId,songs,bk.songs);
+    }else throw 0;
+    toast('Backup restored');if(curGig())openGig(gigId,'gigs');else show('gigs');
   }catch(err){toast('That file is not a Stageclick backup')}
 };
 
-/* ---------- microphone: record + live BPM ---------- */
-const mic={mode:null};
+/* ---------- microphone: record a song + live band BPM ---------- */
+const LIVE_WIN=20;  // seconds of audio the live band-tempo meter looks at
 async function micStart(mode){
   micStop();
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('nomic');
   try{if(navigator.audioSession)navigator.audioSession.type='play-and-record'}catch(e){}
   const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}});
-  Object.assign(mic,{mode,stream,chunks:[],len:0,pos:0,fill:0,t0:performance.now(),peak:0,n:0,est:[],frames:0,rewired:0});
+  Object.assign(mic,{mode,stream,chunks:[],len:0,pos:0,fill:0,t0:performance.now(),peak:0,n:0,est:[],frames:0,rewired:0,band:null});
   await micWire();
   mic.timer=setInterval(micTick,250);
 }
@@ -752,8 +999,8 @@ async function micWire(){
   // (re)build the graph; iOS can leave the context stuck after the mic switches the audio session
   try{mic.src&&mic.src.disconnect();mic.proc&&mic.proc.disconnect();mic.sink&&mic.sink.disconnect()}catch(e){}
   const c=await live(),src=c.createMediaStreamSource(mic.stream),proc=c.createScriptProcessor(4096,1,1),sink=c.createGain();sink.gain.value=0;
-  const sr=c.sampleRate,RING=Math.round(sr*20);
-  if(!mic.ring||mic.sr!==sr){mic.ring=new Float32Array(RING);mic.pos=0;mic.fill=0}
+  const sr=c.sampleRate,RING=Math.round(sr*LIVE_WIN);
+  if(!mic.ring||mic.sr!==sr||mic.ring.length!==RING){mic.ring=new Float32Array(RING);mic.pos=0;mic.fill=0}
   Object.assign(mic,{src,proc,sink,sr,lastFrames:mic.frames,wiredAt:performance.now()});
   proc.onaudioprocess=e=>{
     if(!mic.mode)return;const x=e.inputBuffer.getChannelData(0),R=mic.ring.length;mic.frames++;
@@ -764,18 +1011,25 @@ async function micWire(){
   src.connect(proc);proc.connect(sink);sink.connect(c.destination);
 }
 function micStop(){
-  if(!mic.mode)return;clearInterval(mic.timer);
+  if(!mic.mode)return;if(setRec.mr)setRecStop();clearInterval(mic.timer);
   try{mic.src.disconnect();mic.proc.disconnect();mic.sink.disconnect()}catch(e){}
   try{mic.stream.getTracks().forEach(t=>t.stop())}catch(e){}
   try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}
-  const was=mic.mode;mic.mode=null;
-  if(was==='listen'){$('shListen').classList.remove('on');$('shListen').textContent='Listen to the band';const l=$('shLive');l.className='live';l.textContent='Mic off'}
+  const was=mic.mode;mic.mode=null;mic.band=null;
+  if(was==='listen'){$('shListen').classList.remove('on');$('shListen').textContent='Listen to the band';renderBand()}
   if(was==='rec')$('recPanel').hidden=true,$('edSrc').hidden=false;
 }
 function ringBuf(){const n=mic.fill,R=mic.ring.length,o=new Float32Array(n),st=(mic.pos-n+R)%R;for(let i=0;i<n;i++)o[i]=mic.ring[(st+i)%R];return{sampleRate:mic.sr,length:n,numberOfChannels:1,getChannelData:()=>o}}
 function liveBpm(target){
   if(mic.fill<mic.sr*8)return null;const b=ringBuf();
   return detect(b,0,b.length/b.sampleRate,4,target?Math.max(40,target*0.8):55,target?Math.min(250,target*1.25):210,!target).bpm;
+}
+function renderBand(msg,cls){
+  const l=$('shLive'),u=$('shUseBand'),s=songs[cur];
+  if(msg!=null){l.className='live'+(cls?' '+cls:'');l.innerHTML=msg}
+  else if(!mic.mode||mic.mode!=='listen'){l.className='live';l.textContent='Mic off'}
+  u.disabled=!(mic.mode==='listen'&&mic.band&&s);
+  u.textContent=mic.band&&s&&mic.mode==='listen'?(s.bpm&&Math.round(mic.band)===Math.round(s.bpm)?'Band = click ✓':'Set to '+Math.round(mic.band)):'Use band BPM';
 }
 function micTick(){
   mic.n++;const secs=(performance.now()-mic.t0)/1000;
@@ -790,21 +1044,25 @@ function micTick(){
     if(mic.n%16===0){const b=liveBpm(null);if(b)$('recBpm').textContent=`Live estimate: about ${Math.round(b)} BPM`+(mic.peak>0.97?' · too loud, move the phone away':'')}
     if(secs>=240)finishRec();
   }else if(mic.mode==='listen'&&mic.n%8===0){
-    const s=songs[cur],t=s&&s.bpm,l=$('shLive');
-    if(!mic.frames){l.className='live bad';l.textContent=mic.rewired>=3?'Mic not working · tap Stop, then Listen':'Starting mic…';return}
+    const s=songs[cur],t=s&&s.bpm;
+    if(!mic.frames){renderBand(mic.rewired>=3?'Mic not working · tap Stop, then Listen':'Starting mic…','bad');return}
     const b0=liveBpm(t);
-    if(!b0){l.className='live';l.textContent=`Listening… ${Math.max(0,8-Math.floor(mic.fill/mic.sr))} s`;return}
-    if(mic.est.length&&t&&mic.estFor!==t)mic.est=[];mic.estFor=t;mic.est.push(b0);if(mic.est.length>3)mic.est.shift();
+    if(!b0){renderBand(`Listening… ${Math.max(0,8-Math.floor(mic.fill/mic.sr))} s`);return}
+    if(mic.est.length&&mic.estFor!==t)mic.est=[];mic.estFor=t;mic.est.push(b0);if(mic.est.length>3)mic.est.shift();
     const srt=[...mic.est].sort((x,y)=>x-y),b=srt[Math.floor(srt.length/2)],r=Math.round(b);
-    if(!t){l.className='live';l.textContent=`Band ≈ ${r} BPM`;return}
-    const d=r-Math.round(t);l.className='live '+(Math.abs(d)<=2?'ok':Math.abs(d)<=5?'off':'bad');
-    l.textContent=`Band ≈ ${r} · ${d===0?'on tempo':d>0?'+'+d+' fast':d+' slow'}`;
+    mic.band=mic.est.length>=2?b:null;
+    if(setRec.mr&&setRec.meta){setRec.meta.log.push({t:+((performance.now()-setRec.t0)/1000).toFixed(1),b:+b0.toFixed(1),tg:t||null,n:cur})}
+    if(!t){mic.alt=r<100?r*2:Math.round(r/2);renderBand(`Band ≈ ${r} <span style="font-size:20px">or ${mic.alt}?</span>`);return}
+    mic.alt=null;
+    const d=r-Math.round(t),a=Math.abs(d);
+    renderBand(`Band ≈ ${r} · ${d===0?'on tempo':d>0?'▲ '+d+' fast':'▼ '+a+' slow'}`,a<=2?'ok':a<=5?'off':'bad');
   }
 }
 function micError(e){
   return e&&e.name==='NotAllowedError'?'Microphone access is blocked. In iPhone Settings → Apps → Safari → Microphone, choose Allow, then try again.':'The microphone could not start. Close other apps using it and try again.';
 }
 $('edRec').onclick=async()=>{
+  if(setRec.mr){toast('Stop the set recording first');return}
   stopAll();
   try{await micStart('rec');$('recPanel').hidden=false;$('edSrc').hidden=true;$('recTime').textContent='0:00';$('recBpm').textContent='Play the song. The BPM estimate appears after about 8 seconds.'}
   catch(e){edStatus(micError(e),true);toast(micError(e))}
@@ -819,43 +1077,172 @@ async function finishRec(){
   let d=data,r=sr;if(sr>=44100){const m=Math.floor(n/2);d=new Float32Array(m);for(let i=0;i<m;i++)d[i]=(data[2*i]+data[2*i+1])*0.5;r=sr/2}
   const buf=getCtx().createBuffer(1,d.length,r);buf.getChannelData(0).set(d);
   const s=ed.song,dt=detect(buf,1,Math.min(45,buf.duration-1),s.bpb),old=s.bpm;
+  if(s.bpm!==dt.bpm)s.confirmed=null;
   s.bpm=dt.bpm;s.gridT=dt.gridT;s.audio=wav([d],r);s.fileName='mic-'+new Date().toISOString().slice(0,16)+'.wav';ed.buf=buf;s.startT=snap(s,Math.max(dt.gridT,1));
   refreshEditor();
   try{
-    s.name=($('edName').value.trim()||s.name||'Untitled song');s.clip=clipFrom(buf,s.startT,grooveDur(s));s.rev=(s.rev||0)+1;
+    s.name=($('edName').value.trim()||s.name||'Untitled song');s.gigId=s.gigId||gigId;s.clip=clipFrom(buf,s.startT,grooveDur(s));s.rev=(s.rev||0)+1;
     if(db)await dbPut(s);const i=songs.findIndex(x=>x.id===s.id);if(i>=0)songs[i]=s;else{s.order=songs.length;songs.push(s);if(db)await dbPut(s)}ed.isNew=false;
+    await touchGig();
     toast(`Saved · ${fmtBpm(dt.bpm)} BPM`+(old&&Math.abs(old-dt.bpm)>=1?` (was ${fmtBpm(old)})`:''));
   }catch(e){toast('Recorded, but could not save. Tap Save to try again.')}
 };
 $('newRec').onclick=()=>{
-  stopAll();ed={song:{id:'m'+Date.now().toString(36),name:'New song',bpm:null,bpb:4,bars:4,gridT:0,startT:0,order:songs.length,rev:0,fileName:'',audio:null,clip:null},buf:null,isNew:true};
+  stopAll();ed={song:{id:uid('m'),gigId,name:'New song',bpm:null,bpb:4,bars:4,gridT:0,startT:0,order:songs.length,rev:0,fileName:'',audio:null,clip:null},buf:null,isNew:true};
   openEditorUI();setTimeout(()=>{$('edName').select&&$('edName').focus()},50);
 };
+async function listenOn(){
+  if(mic.mode==='listen')return true;
+  try{await micStart('listen');$('shListen').classList.add('on');$('shListen').textContent='Stop listening';renderBand('Listening…');return true}
+  catch(e){toast(micError(e));return false}
+}
 $('shListen').onclick=async()=>{
-  if(mic.mode==='listen'){micStop();return}
-  try{await micStart('listen');$('shListen').classList.add('on');$('shListen').textContent='Stop listening';$('shLive').textContent='Listening…'}
-  catch(e){toast(micError(e))}
+  if(mic.mode==='listen'){if(setRec.mr){toast('Stop the set recording first · it uses the mic');return}micStop();return}
+  listenOn();
 };
 
+/* ---------- set recording (compressed, saved in 10 s pieces so nothing is lost if Safari closes) ---------- */
+const setRec={mr:null,meta:null,t0:0,i:0};
+function recMime(){if(!window.MediaRecorder)return null;for(const m of ['audio/mp4;codecs=mp4a.40.2','audio/mp4','audio/aac','audio/webm;codecs=opus','audio/webm'])try{if(MediaRecorder.isTypeSupported(m))return m}catch(e){}return ''}
+async function setRecStart(){
+  const mime=recMime();if(mime==null){toast('This browser cannot record. Update iOS and use Safari.');return}
+  if(!db){toast('Recording needs storage. Turn off Private Browsing.');return}
+  if(!(await listenOn()))return;
+  let mr;try{mr=new MediaRecorder(mic.stream,Object.assign({audioBitsPerSecond:+$('recQ').value},mime?{mimeType:mime}:{}))}catch(e){try{mr=new MediaRecorder(mic.stream)}catch(e2){toast('Recording could not start');return}}
+  const g=curGig();
+  const meta={id:uid('rec'),gigId,gigName:g?g.name:'No gig',gigDate:g?g.date:today(),started:new Date().toISOString(),dur:0,bytes:0,mime:mr.mimeType||mime||'audio/mp4',state:'rec',marks:[],log:[]};
+  Object.assign(setRec,{mr,meta,t0:performance.now(),i:0});
+  mr.ondataavailable=async e=>{
+    if(!e.data||!e.data.size)return;const i=setRec.i++,m=meta;
+    try{const ab=await e.data.arrayBuffer();m.bytes+=ab.byteLength;m.dur=(performance.now()-setRec.t0)/1000;
+      await chunkPut({k:m.id+':'+String(i).padStart(6,'0'),recId:m.id,i,ab});await recPut(m)}
+    catch(err){toast('Recording: the phone is out of storage');try{mr.stop()}catch(x){}}
+  };
+  mr.onstop=async()=>{meta.state='done';meta.dur=(performance.now()-setRec.t0)/1000;try{await recPut(meta)}catch(e){}
+    if(setRec.meta===meta)Object.assign(setRec,{mr:null,meta:null});renderRecUI();if(view==='recs')renderRecs()};
+  try{mr.start(10000)}catch(e){toast('Recording could not start');Object.assign(setRec,{mr:null,meta:null});return}
+  await recPut(meta);renderRecUI();wake();toast('Recording the set');
+  if(eng.running&&eng.owner==='show'&&songs[cur])recMark(songs[cur]);
+}
+function setRecStop(){const mr=setRec.mr;if(!mr)return;try{mr.requestData()}catch(e){}try{mr.stop()}catch(e){}setRec.mr=null;renderRecUI();toast('Recording saved · see Recordings')}
+function recMark(s){if(!setRec.mr||!setRec.meta||!s)return;setRec.meta.marks.push({t:+((performance.now()-setRec.t0)/1000).toFixed(1),name:s.name,bpm:s.bpm||null,n:cur})}
+function renderRecUI(){const on=!!setRec.mr;$('recBadge').hidden=!on;$('shRec').classList.toggle('armed',on);if(!on)$('shRec').textContent='● Record the set'}
+$('shRec').onclick=()=>{if(setRec.mr)setRecStop();else setRecStart()};
+$('recBadge').onclick=()=>show('show');
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&setRec.mr){try{setRec.mr.requestData()}catch(e){}}});
+$('recQ').value=store.get('recQ','64000');$('recQ').onchange=()=>store.set('recQ',$('recQ').value);
+
+/* ---------- recordings view ---------- */
+let recs=[],plRec=null,plUrl=null;
+async function renderRecs(){
+  const L=$('recList');recs=db?(await recAll()||[]).sort((a,b)=>b.started.localeCompare(a.started)):[];L.innerHTML='';
+  if(!recs.length)L.innerHTML='<div class="empty">No recordings yet. On Show, tap <b>● Record the set</b>.</div>';
+  for(const r of recs){
+    const el=document.createElement('div');el.className='gcard'+(plRec&&plRec.id===r.id?' curr':'');
+    const when=new Date(r.started);
+    el.innerHTML=`<button class="main"><span class="label">${esc(when.toLocaleDateString(undefined,{day:'numeric',month:'short'}))} ${esc(when.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}))} · ${fmtHMS(r.dur)} · ${fmtMB(r.bytes)}${r.state==='rec'&&setRec.meta&&setRec.meta.id===r.id?' · <span style="color:var(--down)">recording</span>':r.state!=='done'?' · cut short':''}</span><b></b><span class="muted">${r.marks.length} song${r.marks.length===1?'':'s'} marked</span></button>`;
+    el.querySelector('b').textContent=r.gigName;
+    el.querySelector('.main').onclick=()=>openRec(r);
+    L.append(el);
+  }
+  const tot=recs.reduce((a,r)=>a+r.bytes,0);$('recStorage').textContent=recs.length?`Recordings use ${fmtMB(tot)}.`:'';
+  const e=document.createElement('span');$('recStorage').append(e);storageLine(e);
+}
+function songStats(r){
+  // per marked song: band tempo readings between this mark and the next one
+  return r.marks.map((m,k)=>{const end=k+1<r.marks.length?r.marks[k+1].t:Infinity;
+    const xs=r.log.filter(l=>l.t>=m.t+8&&l.t<end).map(l=>l.b).sort((a,b)=>a-b);
+    const med=xs.length?xs[Math.floor(xs.length/2)]:null;
+    return{...m,end,cnt:xs.length,med,lo:xs.length?xs[Math.floor(xs.length*0.1)]:null,hi:xs.length?xs[Math.floor(xs.length*0.9)]:null}});
+}
+async function openRec(r){
+  if(setRec.meta&&setRec.meta.id===r.id){toast('Still recording · stop it on Show first');return}
+  $('player').hidden=false;$('plTitle').textContent=r.gigName;$('plMeta').textContent=`${new Date(r.started).toLocaleString()} · ${fmtHMS(r.dur)} · ${fmtMB(r.bytes)}`;
+  plRec=r;if(plUrl)URL.revokeObjectURL(plUrl);
+  const ch=(await chunksOf(r.id)||[]).sort((a,b)=>a.i-b.i);plUrl=URL.createObjectURL(new Blob(ch.map(c=>c.ab),{type:r.mime}));
+  const A=$('plAudio');A.src=plUrl;
+  const M=$('plMarks');M.innerHTML='';
+  const st=songStats(r);
+  if(!st.length)M.innerHTML='<span class="muted">No song markers. Markers are added when you press Play or Click only while recording.</span>';
+  for(const m of st){
+    const b=document.createElement('button');b.className='mk';
+    let d=m.bpm?`Click ${fmtBpm(m.bpm)}`:'No BPM set';
+    if(m.med!=null){const off=Math.round(m.med)-Math.round(m.bpm||m.med),cls=!m.bpm?'':Math.abs(off)<=2?'ok':Math.abs(off)<=5?'off':'bad';
+      d+=` · band ${Math.round(m.med)}`+(m.bpm?` <span class="${cls}">(${off>0?'+':''}${off})</span>`:'')+(m.hi-m.lo>=3?` · drifted ${Math.round(m.lo)}–${Math.round(m.hi)}`:'')}
+    else d+=' · no tempo reading';
+    b.innerHTML=`<span class="t"></span><span class="at">${fmtHMS(m.t)}</span><span class="d">${d}</span>`;b.querySelector('.t').textContent=`${m.n+1}. ${m.name}`;
+    b.onclick=()=>{A.currentTime=Math.max(0,m.t-2);A.play().catch(()=>{})};
+    M.append(b);
+  }
+  renderRecs();window.scrollTo(0,0);
+}
+$('plClose').onclick=()=>{$('plAudio').pause();$('player').hidden=true;plRec=null;renderRecs()};
+$('plExport').onclick=async()=>{
+  if(!plRec)return;const ch=(await chunksOf(plRec.id)||[]).sort((a,b)=>a.i-b.i),ext=/webm/.test(plRec.mime)?'webm':'m4a';
+  const name=`stageclick-${plRec.gigDate||''}-${plRec.gigName.replace(/[^\w]+/g,'-').toLowerCase()}-${plRec.started.slice(11,16).replace(':','')}.${ext}`;
+  const f=new File(ch.map(c=>c.ab),name,{type:plRec.mime});
+  try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:name});return}}catch(e){if(e&&e.name==='AbortError')return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),10000);
+};
+$('plReport').onclick=()=>{
+  if(!plRec)return;
+  const txt=`Tempo report · ${plRec.gigName} · ${new Date(plRec.started).toLocaleString()}\n`+songStats(plRec).map(m=>`${m.n+1}. ${m.name} @ ${fmtHMS(m.t)} — click ${m.bpm?fmtBpm(m.bpm):'not set'} · band ${m.med!=null?Math.round(m.med)+(m.hi-m.lo>=3?` (range ${Math.round(m.lo)}–${Math.round(m.hi)})`:''):'no reading'}`).join('\n');
+  navigator.clipboard.writeText(txt).then(()=>toast('Tempo report copied'),()=>toast('Copy failed'));
+};
+$('plDel').onclick=()=>arm($('plDel'),'Tap again to delete',3500,async()=>{
+  if(!plRec)return;try{await delByIndex('chunks','rec',plRec.id);await req('recs','readwrite',s=>s.delete(plRec.id))}catch(e){toast('Could not delete');return}
+  $('plAudio').pause();$('plAudio').removeAttribute('src');if(plUrl)URL.revokeObjectURL(plUrl);plUrl=null;plRec=null;$('player').hidden=true;toast('Recording deleted');renderRecs();
+});
+
 /* ---------- boot ---------- */
+async function readOldDB(){
+  // v1 app stored songs in 'stageclick'; read them (without changing that database)
+  return await new Promise(res=>{let made=false;let r;try{r=indexedDB.open('stageclick')}catch(e){res([]);return}
+    r.onupgradeneeded=()=>{made=true};r.onerror=()=>res([]);
+    r.onsuccess=()=>{const d=r.result;
+      if(made||!d.objectStoreNames.contains('songs')){d.close();if(made)try{indexedDB.deleteDatabase('stageclick')}catch(e){}res([]);return}
+      try{const q=d.transaction('songs','readonly').objectStore('songs').getAll();q.onsuccess=()=>{d.close();res(q.result||[])};q.onerror=()=>{d.close();res([])}}catch(e){d.close();res([])}}});
+}
+async function migrate(){
+  if(await metaGet('migrated'))return false;
+  const old=(await readOldDB()).filter(s=>!s.example).sort((a,b)=>a.order-b.order);
+  if(old.length){
+    let idx=[];try{const r=await fetch('gigs/index.json',{cache:'no-store'});if(r.ok)idx=await r.json()}catch(e){}
+    const groups=new Map();for(const s of old){const k=s.gig||'';if(!groups.has(k))groups.set(k,[]);groups.get(k).push(s)}
+    for(const [k,list] of groups){
+      const ref=idx.find(x=>x.id===k),dm=/^(\d{4}-\d{2}-\d{2})/.exec(k);
+      const g={id:uid('g'),name:ref?ref.name:k?k.replace(/^\d{4}-\d{2}-\d{2}_/,'').replace(/[-_]/g,' '):'My setlist',date:ref?ref.date:dm?dm[1]:today(),src:k||null,created:Date.now()};
+      list.forEach((s,i)=>{s.gigId=g.id;s.order=i});for(const s of list)await dbPut(s);
+      Object.assign(g,statsOf(list));await gigPut(g);
+    }
+  }
+  await metaSet('migrated',new Date().toISOString());await metaSet('seeded',true);
+  return old.length>0;
+}
 (async function boot(){
   const v=store.get('vol',null);if(v){$('volClick').value=v[0];$('volGroove').value=v[1]}
   $('overlay').checked=store.get('overlay',true);
+  $('sound').value=store.get('sound','all');
   try{
     db=await openDB();try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
-    songs=(await dbAll()||[]).sort((a,b)=>a.order-b.order);
-    if(!songs.length&&!(await metaGet('seeded'))){const ex=makeExample();await dbPut(ex);await metaSet('seeded',true);songs=[ex]}
+    const moved=await migrate();
+    if(!(await metaGet('seeded'))){const g=await newGig('Practice',today());const ex=makeExample();ex.gigId=g.id;await dbPut(ex);g.n=1;await gigPut(g);await metaSet('seeded',true)}
+    gigs=await dbGigs()||[];gigSort();
+    for(const r of await recAll()||[])if(r.state==='rec'){r.state='cut';await recPut(r)}
+    let gid=store.get('gig',null);if(!gigs.some(g=>g.id===gid))gid=gigs.length?gigs[0].id:null;
+    if(gid){gigId=gid;songs=(await dbSongsOf(gid)||[]).sort((a,b)=>a.order-b.order)}
+    if(moved)toast('Your songs are now in Gigs');
   }catch(e){
-    db=null;songs=[makeExample()];
-    const st=$('setStatus');st.classList.add('err');st.textContent='Safari is blocking storage for this page, so songs will not be kept after you close it. Turn off Private Browsing and reload.';
+    db=null;const g={id:'g-temp',name:'Practice',date:today(),n:1};gigs=[g];gigId=g.id;const ex=makeExample();ex.gigId=g.id;songs=[ex];
+    const st=$('storageInfo');st.classList.add('err');st.textContent='Safari is blocking storage for this page, so songs will not be kept after you close it. Turn off Private Browsing and reload.';
   }
-  $('sound').value=store.get('sound','all');
-  renderList();loadGigIndex();
-  cur=Math.max(0,Math.min(songs.length-1,store.get('cur',0)|0));
-  if(store.get('view','set')==='show'&&songs.length)show('show');
+  loadGigIndex();
+  cur=Math.max(0,Math.min(songs.length-1,(store.get('curBy',{})[gigId])|0));
+  const sv=store.get('view','set');show(sv==='show'&&songs.length?'show':sv==='recs'?'recs':curGig()?'set':'gigs');
 })();
 $('sound').onchange=()=>store.set('sound',$('sound').value);
 $('clickLen').value=store.get('clickLen','15');$('clickLen').onchange=()=>store.set('clickLen',$('clickLen').value);
+$('countIn').value=store.get('countIn','0');$('countIn').onchange=()=>store.set('countIn',$('countIn').value);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&ctx&&ctx.state!=='running'){try{ctx.resume()}catch(e){}}});
 document.addEventListener('gesturestart',e=>e.preventDefault());
 </script>
