@@ -1,0 +1,106 @@
+{
+ "gig": "CSEDU",
+ "date": "2026-12-06",
+ "songs": [
+  {
+   "n": 1,
+   "name": "Mary Ann",
+   "bpm": 163,
+   "bpb": 4,
+   "bars": 4,
+   "clip": "clips/01_mary-ann.mp3",
+   "source": "practice 2026-11-15 @ 4:38",
+   "note": "takes: 163, 163, 162"
+  },
+  {
+   "n": 2,
+   "name": "Rolling in the Deep",
+   "bpm": null,
+   "bpb": 4,
+   "bars": 4,
+   "note": "not in the Nov 15 practice"
+  },
+  {
+   "n": 3,
+   "name": "Mon Shudhu Mon",
+   "bpm": 100,
+   "bpb": 4,
+   "bars": 4,
+   "confirmed": "2026-11-12 band run-through",
+   "clip": "clips/03_mon-shudhu-mon.mp3",
+   "source": "rehearsal 2026-11-09 @ 0:30",
+   "note": "from Dibitio gig"
+  },
+  {
+   "n": 4,
+   "name": "Girl on Fire",
+   "bpm": null,
+   "bpb": 4,
+   "bars": 4,
+   "note": "not in the Nov 15 practice"
+  },
+  {
+   "n": 5,
+   "name": "Ural Debo Akashe",
+   "bpm": null,
+   "bpb": 4,
+   "bars": 4,
+   "note": "not in the Nov 15 practice"
+  },
+  {
+   "n": 6,
+   "name": "Chaite Paro 2",
+   "bpm": 147,
+   "bpb": 4,
+   "bars": 4,
+   "clip": "clips/06_chaite-paro-2.mp3",
+   "source": "practice 2026-11-15 @ 0:45"
+  },
+  {
+   "n": 7,
+   "name": "Pagla Hawa",
+   "bpm": 117,
+   "bpb": 4,
+   "bars": 4,
+   "clip": "clips/07_pagla-hawa.mp3",
+   "source": "practice 2026-11-15 @ 22:32",
+   "note": "takes: 122, 119, 116, 115"
+  },
+  {
+   "n": 8,
+   "name": "Baba Bole Chele Nam Korbe",
+   "bpm": 89,
+   "bpb": 4,
+   "bars": 4,
+   "clip": "clips/08_baba-bole-chele-nam-korbe.mp3",
+   "source": "practice 2026-11-15 @ 38:09",
+   "note": "takes: 89, 89, 89"
+  },
+  {
+   "n": 9,
+   "name": "Summer of '69",
+   "bpm": null,
+   "bpb": 4,
+   "bars": 4,
+   "note": "not in the Nov 15 practice"
+  },
+  {
+   "n": 10,
+   "name": "Sraboner Megh",
+   "bpm": 140,
+   "bpb": 4,
+   "bars": 4,
+   "confirmed": "2026-11-12 band run-through",
+   "note": "from Dibitio gig"
+  },
+  {
+   "n": 11,
+   "name": "Abar Elo Je Sondha",
+   "bpm": 95,
+   "bpb": 4,
+   "bars": 4,
+   "confirmed": "2026-11-12 band run-through",
+   "note": "from Dibitio gig"
+  }
+ ]
+}
