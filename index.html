@@ -28,6 +28,8 @@ header{display:flex;flex-direction:column;gap:10px}
 .tabs{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px}
 .tabs button{flex:1;border:0;background:none;color:var(--dim);font:700 15px var(--body);padding:9px 4px;border-radius:7px}
 .tabs button[aria-pressed="true"]{background:var(--line);color:var(--fg)}
+.health{font-weight:700;font-size:15px;color:var(--ok)}.health.bad{color:#fff;background:var(--down);border-radius:8px;padding:10px 12px}
+.recbadge.alarm{animation:blink 1s steps(2) infinite}@keyframes blink{50%{opacity:.35}}
 .recbadge{border:0;background:var(--down);color:#fff;font:700 14px var(--body);border-radius:99px;padding:6px 12px;font-variant-numeric:tabular-nums}
 button{font-family:var(--body);cursor:pointer;color:var(--fg)}
 button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--tally);outline-offset:2px}
@@ -213,6 +215,7 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
       <span class="label" id="recLiveName">Recording</span>
       <div class="rectime" id="recLiveTime">0:00</div>
       <div class="muted" id="recLiveInfo"></div>
+      <div class="health" id="recHealth"></div>
       <div class="grid2"><button class="btn primary" id="recGoShow">Go to Show ▶</button><button class="btn armed" id="recEnd">■ Stop recording</button></div>
     </div>
     <div class="panel" id="recNew">
@@ -222,6 +225,7 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
     </div>
     <div class="panel" id="player" hidden>
       <div><span class="label" id="plMeta"></span><div class="sname" style="font-size:30px" id="plTitle"></div></div>
+      <nav class="tabs" id="plPartSel" hidden></nav>
       <audio id="plAudio" controls preload="metadata"></audio>
       <span class="label">Songs · tap one to jump to it</span>
       <div id="plMarks" class="field" style="gap:0"></div>
@@ -237,7 +241,7 @@ canvas{width:100%;display:block;border-radius:10px;background:var(--panel);borde
       <ol>
         <li>Tap <b>● Start recording</b> here, then go to <b>Show</b> and play as usual. The mic also measures the band's tempo.</li>
         <li>Each time you press <b>Play</b> or <b>Click only</b> on Show, a song marker is added.</li>
-        <li>Keep the screen on and Stageclick open. Locking the phone can stop the recording.</li>
+        <li>Keep the screen on and Stageclick open. It saves every 5 s and restarts itself if iOS drops the mic. A red alarm shows if the mic goes silent.</li>
         <li>Listen back here, then use <b>Save to Files</b> to keep it and <b>Delete</b> to free space.</li>
       </ol>
     </div>
@@ -742,7 +746,7 @@ $('overlay').onchange=()=>{store.set('overlay',$('overlay').checked);eng.overlay
 let badgeT=0;
 function frame(){
   requestAnimationFrame(frame);
-  if(setRec.mr&&performance.now()-badgeT>500){badgeT=performance.now();const t=fmtHMS((performance.now()-setRec.t0)/1000);$('recBadge').textContent='● REC '+t;$('recLiveTime').textContent=t;if(setRec.meta)$('recLiveInfo').textContent=`${setRec.meta.marks.length} song${setRec.meta.marks.length===1?'':'s'} marked · ${fmtMB(setRec.meta.bytes)}`}
+  if(setRec.meta&&performance.now()-badgeT>500){badgeT=performance.now();const t=fmtHMS((performance.now()-setRec.t0)/1000);$('recBadge').textContent=(setRec.alarm?'⚠ REC ':'● REC ')+t;renderRecHealth();$('recLiveTime').textContent=t;if(setRec.meta)$('recLiveInfo').textContent=`${setRec.meta.marks.filter(x=>!x.gap).length} song${setRec.meta.marks.filter(x=>!x.gap).length===1?'':'s'} marked · ${fmtMB(setRec.meta.bytes)}`}
   if(!ctx||!eng.running)return;
   const now=ctx.currentTime;
   if(eng.endAt&&now>=eng.endAt){stopAll();return}
@@ -761,7 +765,7 @@ requestAnimationFrame(frame);
 /* ---------- wake lock ---------- */
 let lock=null;
 async function wake(){try{if('wakeLock' in navigator&&!lock){lock=await navigator.wakeLock.request('screen');lock.addEventListener('release',()=>lock=null)}}catch(e){}}
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&(view==='show'||setRec.mr))wake()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&(view==='show'||setRec.meta))wake()});
 
 /* ---------- editor ---------- */
 let ed=null;
@@ -995,8 +999,8 @@ $('restoreFile').onchange=async e=>{
 
 /* ---------- microphone: record a song + live band BPM ---------- */
 const LIVE_WIN=20;  // seconds of audio the live band-tempo meter looks at
-async function micStart(mode){
-  micStop();
+async function micStart(mode,keepRec){
+  micStop(keepRec);
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('nomic');
   try{if(navigator.audioSession)navigator.audioSession.type='play-and-record'}catch(e){}
   const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}});
@@ -1019,8 +1023,8 @@ async function micWire(){
   };
   src.connect(proc);proc.connect(sink);sink.connect(c.destination);
 }
-function micStop(){
-  if(!mic.mode)return;if(setRec.mr)setRecStop();clearInterval(mic.timer);
+function micStop(keepRec){
+  if(!mic.mode)return;if(setRec.meta&&!keepRec)setRecStop();clearInterval(mic.timer);
   try{mic.src.disconnect();mic.proc.disconnect();mic.sink.disconnect()}catch(e){}
   try{mic.stream.getTracks().forEach(t=>t.stop())}catch(e){}
   try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}
@@ -1060,7 +1064,7 @@ function micTick(){
     if(mic.est.length&&mic.estFor!==t)mic.est=[];mic.estFor=t;mic.est.push(b0);if(mic.est.length>3)mic.est.shift();
     const srt=[...mic.est].sort((x,y)=>x-y),b=srt[Math.floor(srt.length/2)],r=Math.round(b);
     mic.band=mic.est.length>=2?b:null;
-    if(setRec.mr&&setRec.meta){setRec.meta.log.push({t:+((performance.now()-setRec.t0)/1000).toFixed(1),b:+b0.toFixed(1),tg:t||null,n:cur})}
+    if(setRec.meta){setRec.meta.log.push({t:+((performance.now()-setRec.t0)/1000).toFixed(1),b:+b0.toFixed(1),tg:t||null,n:cur})}
     if(!t){mic.alt=r<100?r*2:Math.round(r/2);renderBand(`Band ≈ ${r} <span style="font-size:20px">or ${mic.alt}?</span>`);return}
     mic.alt=null;
     const d=r-Math.round(t),a=Math.abs(d);
@@ -1071,7 +1075,7 @@ function micError(e){
   return e&&e.name==='NotAllowedError'?'Microphone access is blocked. In iPhone Settings → Apps → Safari → Microphone, choose Allow, then try again.':'The microphone could not start. Close other apps using it and try again.';
 }
 $('edRec').onclick=async()=>{
-  if(setRec.mr){toast('Stop the set recording first');return}
+  if(setRec.meta){toast('Stop the recording first');return}
   stopAll();
   try{await micStart('rec');$('recPanel').hidden=false;$('edSrc').hidden=true;$('recTime').textContent='0:00';$('recBpm').textContent='Play the song. The BPM estimate appears after about 8 seconds.'}
   catch(e){edStatus(micError(e),true);toast(micError(e))}
@@ -1106,42 +1110,100 @@ async function listenOn(){
   catch(e){toast(micError(e));return false}
 }
 $('shListen').onclick=async()=>{
-  if(mic.mode==='listen'){if(setRec.mr){toast('Stop the set recording first · it uses the mic');return}micStop();return}
+  if(mic.mode==='listen'){if(setRec.meta){toast('Stop the set recording first · it uses the mic');return}micStop();return}
   listenOn();
 };
 
-/* ---------- set recording (compressed, saved in 10 s pieces so nothing is lost if Safari closes) ---------- */
-const setRec={mr:null,meta:null,t0:0,i:0};
+/* ---------- set recording ----------
+   Safety: compressed audio saved to the phone every 5 s (a crash loses at most the last 5 s).
+   A watchdog restarts the recorder (and the mic, if iOS drops it) as a new PART of the same recording,
+   retries failed saves, and raises an alarm when the mic goes silent or saving fails. */
+const setRec={mr:null,meta:null,t0:0,p:0,i:0,stopping:false,watch:null,lastData:0,pending:[],alarm:'',quietSince:0};
+const recNow=()=>(performance.now()-setRec.t0)/1000;
 function recMime(){if(!window.MediaRecorder)return null;for(const m of ['audio/mp4;codecs=mp4a.40.2','audio/mp4','audio/aac','audio/webm;codecs=opus','audio/webm'])try{if(MediaRecorder.isTypeSupported(m))return m}catch(e){}return ''}
+async function saveChunk(c){
+  try{await chunkPut(c);const m=setRec.meta;if(m&&m.id===c.recId){m.bytes+=c.ab.byteLength;m.dur=recNow();m.parts[c.p].bytes+=c.ab.byteLength;await recPut(m)}return true}
+  catch(e){setRec.pending.push(c);return false}
+}
+function startPart(){
+  const m=setRec.meta,mime=recMime();if(!m||!mic.stream)return false;
+  let mr;try{mr=new MediaRecorder(mic.stream,Object.assign({audioBitsPerSecond:+$('recQ').value},mime?{mimeType:mime}:{}))}catch(e){try{mr=new MediaRecorder(mic.stream)}catch(e2){return false}}
+  const p=m.parts.length;m.parts.push({p,at:+recNow().toFixed(1),mime:mr.mimeType||mime||'audio/mp4',bytes:0});
+  let i=0;
+  mr.ondataavailable=async e=>{if(!e.data||!e.data.size)return;setRec.lastData=performance.now();const k=i++;const ab=await e.data.arrayBuffer();await saveChunk({k:m.id+':'+String(p).padStart(3,'0')+':'+String(k).padStart(6,'0'),recId:m.id,p,i:k,ab})};
+  mr.onerror=()=>{if(setRec.mr===mr)restartRec('recorder error')};
+  mr.onstop=()=>{if(setRec.mr===mr&&!setRec.stopping)restartRec('recorder stopped')};
+  try{mr.start(5000)}catch(e){return false}
+  setRec.mr=mr;setRec.lastData=performance.now();return true;
+}
+async function restartRec(why){
+  if(setRec.restarting||!setRec.meta||setRec.stopping)return;setRec.restarting=true;
+  const old=setRec.mr;setRec.mr=null;try{old&&old.state!=='inactive'&&old.stop()}catch(e){}
+  try{
+    const tr=mic.stream&&mic.stream.getAudioTracks()[0];
+    if(!tr||tr.readyState==='ended'||mic.mode!=='listen'){await micStart('listen',true);$('shListen').classList.add('on');$('shListen').textContent='Stop listening'}
+    if(startPart()){setRec.meta.marks.push({t:+recNow().toFixed(1),gap:true,why});setRec.alarm='';toast('Recording restarted automatically · nothing before this was lost')}
+    else setRec.alarm='Recording stopped and could not restart. Tap Stop, then Start again.';
+  }catch(e){setRec.alarm='The mic was lost. Check the mic cable, then tap Stop and Start again.'}
+  setRec.restarting=false;renderRecUI();
+}
+function recWatch(){
+  if(!setRec.meta||setRec.stopping)return;const now=performance.now(),mr=setRec.mr;
+  // retry saves that failed
+  if(setRec.pending.length){const q=setRec.pending.splice(0);q.forEach(c=>saveChunk(c))}
+  let alarm='';
+  if(setRec.pending.length>3)alarm='Can\'t save the recording · the phone may be out of storage. Free some space now.';
+  const tr=mic.stream&&mic.stream.getAudioTracks()[0];
+  if(!mr||mr.state==='inactive'||!tr||tr.readyState==='ended')restartRec(!tr||tr.readyState==='ended'?'mic lost':'recorder stopped');
+  else if(now-setRec.lastData>20000)restartRec('recorder stalled');
+  else if(now-setRec.lastData>9000){try{mr.requestData()}catch(e){}}
+  // silence: no signal for 15 s
+  if(mic.peak>0.003||!mic.frames)setRec.quietSince=now;
+  if(now-setRec.quietSince>15000)alarm=alarm||'No sound from the mic for 15 s · check the mic is plugged in.';
+  if(tr&&tr.muted)alarm=alarm||'iOS paused the mic (a call or another app?) · it will restart when it can.';
+  setRec.alarm=setRec.alarm&&!alarm&&setRec.mr?'':alarm||setRec.alarm;renderRecHealth();
+}
 async function setRecStart(){
   const mime=recMime();if(mime==null){toast('This browser cannot record. Update iOS and use Safari.');return}
   if(!db){toast('Recording needs storage. Turn off Private Browsing.');return}
+  try{const e=await navigator.storage.estimate();if(e.quota&&e.quota-e.usage<300e6){toast('Less than 300 MB of space left · free some space first');return}}catch(e){}
   if(!(await listenOn()))return;
-  let mr;try{mr=new MediaRecorder(mic.stream,Object.assign({audioBitsPerSecond:+$('recQ').value},mime?{mimeType:mime}:{}))}catch(e){try{mr=new MediaRecorder(mic.stream)}catch(e2){toast('Recording could not start');return}}
   const g=curGig();
-  const meta={id:uid('rec'),label:$('recKind').value||'Practice',gigId,gigName:g?g.name:'No gig',gigDate:g?g.date:today(),started:new Date().toISOString(),dur:0,bytes:0,mime:mr.mimeType||mime||'audio/mp4',state:'rec',marks:[],log:[]};
-  Object.assign(setRec,{mr,meta,t0:performance.now(),i:0});
-  mr.ondataavailable=async e=>{
-    if(!e.data||!e.data.size)return;const i=setRec.i++,m=meta;
-    try{const ab=await e.data.arrayBuffer();m.bytes+=ab.byteLength;m.dur=(performance.now()-setRec.t0)/1000;
-      await chunkPut({k:m.id+':'+String(i).padStart(6,'0'),recId:m.id,i,ab});await recPut(m)}
-    catch(err){toast('Recording: the phone is out of storage');try{mr.stop()}catch(x){}}
-  };
-  mr.onstop=async()=>{meta.state='done';meta.dur=(performance.now()-setRec.t0)/1000;try{await recPut(meta)}catch(e){}
-    if(setRec.meta===meta)Object.assign(setRec,{mr:null,meta:null});renderRecUI();if(view==='recs')renderRecs()};
-  try{mr.start(10000)}catch(e){toast('Recording could not start');Object.assign(setRec,{mr:null,meta:null});return}
-  await recPut(meta);renderRecUI();wake();toast('Recording · now go to Show and play');
+  const meta={id:uid('rec'),label:$('recKind').value||'Practice',gigId,gigName:g?g.name:'No gig',gigDate:g?g.date:today(),started:new Date().toISOString(),dur:0,bytes:0,mime:'',state:'rec',marks:[],log:[],parts:[]};
+  Object.assign(setRec,{meta,t0:performance.now(),stopping:false,pending:[],alarm:'',quietSince:performance.now()});
+  await recPut(meta);
+  if(!startPart()){toast('Recording could not start');meta.state='done';await recPut(meta);setRec.meta=null;return}
+  meta.mime=meta.parts[0].mime;
+  clearInterval(setRec.watch);setRec.watch=setInterval(recWatch,2000);
+  renderRecUI();wake();toast('Recording · now go to Show and play');
   if(eng.running&&eng.owner==='show'&&songs[cur])recMark(songs[cur]);
 }
-function setRecStop(){const mr=setRec.mr;if(!mr)return;try{mr.requestData()}catch(e){}try{mr.stop()}catch(e){}setRec.mr=null;renderRecUI();toast('Recording saved');if(view==='set'&&gigPane==='recs')renderRecs()}
-function recMark(s){if(!setRec.mr||!setRec.meta||!s)return;setRec.meta.marks.push({t:+((performance.now()-setRec.t0)/1000).toFixed(1),name:s.name,bpm:s.bpm||null,n:cur})}
-function renderRecUI(){const on=!!setRec.mr,m=setRec.meta;$('recBadge').hidden=!on;$('recLive').hidden=!on;$('recNew').hidden=on;if(on&&m)$('recLiveName').textContent=`Recording · ${m.label} · ${m.gigName}`;
+function setRecStop(){
+  const m=setRec.meta,mr=setRec.mr;if(!m)return;setRec.stopping=true;clearInterval(setRec.watch);
+  const finish=async()=>{for(let k=0;k<3&&setRec.pending.length;k++){const q=setRec.pending.splice(0);for(const c of q)await saveChunk(c)}
+    m.state=setRec.pending.length?'cut':'done';m.dur=recNow();try{await recPut(m)}catch(e){}
+    Object.assign(setRec,{mr:null,meta:null,stopping:false,alarm:''});renderRecUI();
+    toast(m.state==='done'?'Recording saved · tap Save to Files to keep a copy':'Saved, but some audio could not be stored');
+    if(view==='set'&&gigPane==='recs'){await renderRecs();openRec(m)}};
+  if(mr&&mr.state!=='inactive'){mr.onstop=()=>setTimeout(finish,300);try{mr.requestData()}catch(e){}try{mr.stop()}catch(e){finish()}}else finish();
+}
+function recMark(s){if(!setRec.meta||!s)return;setRec.meta.marks.push({t:+recNow().toFixed(1),name:s.name,bpm:s.bpm||null,n:cur})}
+function renderRecHealth(){
+  const h=$('recHealth'),m=setRec.meta;if(!m)return;
+  const ago=Math.round((performance.now()-setRec.lastData)/1000);
+  h.className='health'+(setRec.alarm?' bad':'');
+  h.textContent=setRec.alarm||`✓ Saving every 5 s · last save ${ago} s ago`+(m.parts.length>1?` · restarted ${m.parts.length-1}×, audio before each restart is safe`:'');
+  $('recBadge').classList.toggle('alarm',!!setRec.alarm);
+}
+function renderRecUI(){const on=!!setRec.meta,m=setRec.meta;$('recBadge').hidden=!on;$('recLive').hidden=!on;$('recNew').hidden=on;if(on&&m){$('recLiveName').textContent=`Recording · ${m.label} · ${m.gigName}`;renderRecHealth()}
   if(!on){const g=curGig();$('recKind').value=g&&g.date===today()?'Gig night':'Practice'}}
 $('recStartBtn').onclick=()=>setRecStart();
-$('recEnd').onclick=()=>setRecStop();
+$('recEnd').onclick=()=>arm($('recEnd'),'Tap again to stop',3500,()=>setRecStop());
 $('recGoShow').onclick=()=>show('show');
 $('recBadge').onclick=async()=>{const m=setRec.meta;if(m&&m.gigId!==gigId)await openGig(m.gigId);gigPane='recs';show('set')};
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&setRec.mr){try{setRec.mr.requestData()}catch(e){}}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&setRec.mr){try{setRec.mr.requestData()}catch(e){}}else if(setRec.meta)setTimeout(recWatch,500)});
+window.addEventListener('pagehide',()=>{if(setRec.mr)try{setRec.mr.requestData()}catch(e){}});
+window.addEventListener('beforeunload',e=>{if(setRec.meta){e.preventDefault();e.returnValue=''}});
 $('recQ').value=store.get('recQ','64000');$('recQ').onchange=()=>store.set('recQ',$('recQ').value);
 
 /* ---------- recordings view ---------- */
@@ -1152,7 +1214,7 @@ async function renderRecs(){
   for(const r of recs){
     const el=document.createElement('div');el.className='gcard'+(plRec&&plRec.id===r.id?' curr':'');
     const when=new Date(r.started);
-    el.innerHTML=`<button class="main"><span class="label">${esc(when.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}))} · ${fmtHMS(r.dur)} · ${fmtMB(r.bytes)}${r.state==='rec'&&setRec.meta&&setRec.meta.id===r.id?' · <span style="color:var(--down)">recording</span>':r.state!=='done'?' · cut short':''}</span><b></b><span class="muted">${r.marks.length} song${r.marks.length===1?'':'s'} marked</span></button>`;
+    el.innerHTML=`<button class="main"><span class="label">${esc(when.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}))} · ${fmtHMS(r.dur)} · ${fmtMB(r.bytes)}${r.state==='rec'&&setRec.meta&&setRec.meta.id===r.id?' · <span style="color:var(--down)">recording</span>':r.state!=='done'?' · cut short':''}</span><b></b><span class="muted">${r.marks.filter(x=>!x.gap).length} songs marked${partsOf(r).length>1?` · ${partsOf(r).length} parts (auto-restarted)`:''}</span></button>`;
     el.querySelector('b').textContent=(r.label||'Recording')+' · '+when.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
     el.querySelector('.main').onclick=()=>openRec(r);
     L.append(el);
@@ -1162,17 +1224,34 @@ async function renderRecs(){
 }
 function songStats(r){
   // per marked song: band tempo readings between this mark and the next one
-  return r.marks.map((m,k)=>{const end=k+1<r.marks.length?r.marks[k+1].t:Infinity;
+  const mk=r.marks.filter(m=>!m.gap);
+  return mk.map((m,k)=>{const end=k+1<mk.length?mk[k+1].t:Infinity;
     const xs=r.log.filter(l=>l.t>=m.t+8&&l.t<end).map(l=>l.b).sort((a,b)=>a-b);
     const med=xs.length?xs[Math.floor(xs.length/2)]:null;
     return{...m,end,cnt:xs.length,med,lo:xs.length?xs[Math.floor(xs.length*0.1)]:null,hi:xs.length?xs[Math.floor(xs.length*0.9)]:null}});
 }
+const partsOf=r=>r.parts&&r.parts.length?r.parts:[{p:0,at:0,mime:r.mime,bytes:r.bytes}];
+async function partBlobs(r){
+  const ch=(await chunksOf(r.id)||[]).sort((a,b)=>(a.p||0)-(b.p||0)||a.i-b.i);
+  return partsOf(r).map(pt=>({...pt,blob:new Blob(ch.filter(c=>(c.p||0)===pt.p).map(c=>c.ab),{type:pt.mime||r.mime})})).filter(x=>x.blob.size);
+}
+let plParts=[],plPart=-1;
+function plLoad(k,offset,play){
+  const A=$('plAudio'),pt=plParts[k];if(!pt)return;
+  if(plPart!==k){if(plUrl)URL.revokeObjectURL(plUrl);plUrl=URL.createObjectURL(pt.blob);A.src=plUrl;plPart=k;
+    $('plPartSel').querySelectorAll('button').forEach((b,i)=>b.setAttribute('aria-pressed',i===k))}
+  const go=()=>{try{A.currentTime=Math.max(0,offset||0)}catch(e){}if(play)A.play().catch(()=>{})};
+  if(A.readyState>=1)go();else A.addEventListener('loadedmetadata',go,{once:true});
+}
 async function openRec(r){
   if(setRec.meta&&setRec.meta.id===r.id){toast('Still recording · stop it first');return}
-  $('player').hidden=false;$('plTitle').textContent=(r.label||'Recording')+' · '+new Date(r.started).toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});$('plMeta').textContent=`${new Date(r.started).toLocaleString()} · ${fmtHMS(r.dur)} · ${fmtMB(r.bytes)}`;
-  plRec=r;if(plUrl)URL.revokeObjectURL(plUrl);
-  const ch=(await chunksOf(r.id)||[]).sort((a,b)=>a.i-b.i);plUrl=URL.createObjectURL(new Blob(ch.map(c=>c.ab),{type:r.mime}));
-  const A=$('plAudio');A.src=plUrl;
+  $('player').hidden=false;$('plTitle').textContent=(r.label||'Recording')+' · '+new Date(r.started).toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
+  plRec=r;plPart=-1;plParts=await partBlobs(r);
+  $('plMeta').textContent=`${new Date(r.started).toLocaleString()} · ${fmtHMS(r.dur)} · ${fmtMB(r.bytes)}`+(r.state!=='done'?' · cut short, saved up to the last 5 s':'');
+  const PS=$('plPartSel');PS.innerHTML='';PS.hidden=plParts.length<2;
+  plParts.forEach((pt,k)=>{const b=document.createElement('button');b.textContent=`Part ${k+1} · from ${fmtHMS(pt.at)}`;b.onclick=()=>plLoad(k,0,false);PS.append(b)});
+  if(!plParts.length){$('plMarks').innerHTML='<span class="muted">No audio was saved in this recording.</span>';return}
+  plLoad(0,0,false);
   const M=$('plMarks');M.innerHTML='';
   const st=songStats(r);
   if(!st.length)M.innerHTML='<span class="muted">No song markers. Markers are added when you press Play or Click only while recording.</span>';
@@ -1183,18 +1262,18 @@ async function openRec(r){
       d+=` · band ${Math.round(m.med)}`+(m.bpm?` <span class="${cls}">(${off>0?'+':''}${off})</span>`:'')+(m.hi-m.lo>=3?` · drifted ${Math.round(m.lo)}–${Math.round(m.hi)}`:'')}
     else d+=' · no tempo reading';
     b.innerHTML=`<span class="t"></span><span class="at">${fmtHMS(m.t)}</span><span class="d">${d}</span>`;b.querySelector('.t').textContent=`${m.n+1}. ${m.name}`;
-    b.onclick=()=>{A.currentTime=Math.max(0,m.t-2);A.play().catch(()=>{})};
+    b.onclick=()=>{let k=0;plParts.forEach((pt,i)=>{if(pt.at<=m.t)k=i});plLoad(k,m.t-plParts[k].at-2,true)};
     M.append(b);
   }
   renderRecs();window.scrollTo(0,0);
 }
 $('plClose').onclick=()=>{$('plAudio').pause();$('player').hidden=true;plRec=null;renderRecs()};
 $('plExport').onclick=async()=>{
-  if(!plRec)return;const ch=(await chunksOf(plRec.id)||[]).sort((a,b)=>a.i-b.i),ext=/webm/.test(plRec.mime)?'webm':'m4a';
-  const name=`stageclick-${plRec.gigDate||''}-${plRec.gigName.replace(/[^\w]+/g,'-').toLowerCase()}-${plRec.started.slice(11,16).replace(':','')}.${ext}`;
-  const f=new File(ch.map(c=>c.ab),name,{type:plRec.mime});
-  try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:name});return}}catch(e){if(e&&e.name==='AbortError')return}
-  const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),10000);
+  if(!plRec)return;const parts=await partBlobs(plRec);
+  const base=`stageclick-${plRec.gigDate||''}-${(plRec.label||'rec').toLowerCase().replace(/[^\w]+/g,'-')}-${plRec.gigName.replace(/[^\w]+/g,'-').toLowerCase()}-${plRec.started.slice(11,16).replace(':','')}`;
+  const files=parts.map((pt,k)=>new File([pt.blob],base+(parts.length>1?`-part${k+1}`:'')+'.'+(/webm/.test(pt.blob.type)?'webm':'m4a'),{type:pt.blob.type}));
+  try{if(navigator.canShare&&navigator.canShare({files})){await navigator.share({files,title:base});return}}catch(e){if(e&&e.name==='AbortError')return}
+  for(const f of files){const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),10000)}
 };
 $('plReport').onclick=()=>{
   if(!plRec)return;
@@ -1203,7 +1282,7 @@ $('plReport').onclick=()=>{
 };
 $('plDel').onclick=()=>arm($('plDel'),'Tap again to delete',3500,async()=>{
   if(!plRec)return;try{await delByIndex('chunks','rec',plRec.id);await req('recs','readwrite',s=>s.delete(plRec.id))}catch(e){toast('Could not delete');return}
-  $('plAudio').pause();$('plAudio').removeAttribute('src');if(plUrl)URL.revokeObjectURL(plUrl);plUrl=null;plRec=null;$('player').hidden=true;toast('Recording deleted');renderRecs();
+  $('plAudio').pause();$('plAudio').removeAttribute('src');if(plUrl)URL.revokeObjectURL(plUrl);plUrl=null;plRec=null;plPart=-1;plParts=[];$('player').hidden=true;toast('Recording deleted');renderRecs();
 });
 
 /* ---------- boot ---------- */
