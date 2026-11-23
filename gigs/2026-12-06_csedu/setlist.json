@@ -101,6 +101,15 @@
    "bars": 4,
    "confirmed": "2026-11-12 band run-through",
    "note": "from Dibitio gig"
+  },
+  {
+   "n": 12,
+   "name": "Jadu",
+   "bpm": 93,
+   "bpb": 4,
+   "bars": 4,
+   "clip": "clips/12_jadu.mp3",
+   "source": "practice 2026-11-15 @ 31:06"
   }
  ]
 }
